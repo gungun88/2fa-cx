@@ -134,7 +134,7 @@ HTTPS 证书部分仍以 1Panel 自动生成的配置为准，不要手动覆盖
 服务器检查：
 
 ```bash
-docker ps | grep twofa-cx
+docker ps | grep 2fa-cx
 curl -I http://127.0.0.1:18180
 ```
 
@@ -172,18 +172,18 @@ docker compose down
 如果你提前打了历史镜像标签，例如：
 
 ```bash
-docker build -t twofa-cx:2026-04-11 .
+docker build -t 2fa-cx:2026-04-11 .
 ```
 
 回滚可用：
 
 ```bash
-docker rm -f twofa-cx-web
+docker rm -f 2fa-cx
 docker run -d \
-  --name twofa-cx-web \
+  --name 2fa-cx \
   --restart unless-stopped \
   -p 127.0.0.1:18180:80 \
-  twofa-cx:2026-04-11
+  2fa-cx:2026-04-11
 ```
 
 ## 十、最关键的安全结论

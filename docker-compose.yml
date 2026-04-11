@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    image: ${API_IMAGE_NAME:-twofa-cx-api:latest}
-    container_name: ${API_CONTAINER_NAME:-twofa-cx-api}
+    image: ${API_IMAGE_NAME:-2fa-cx-api:latest}
+    container_name: ${API_CONTAINER_NAME:-2fa-cx-api}
     restart: unless-stopped
     expose:
       - "3001"
@@ -26,8 +26,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${IMAGE_NAME:-twofa-cx:latest}
-    container_name: ${CONTAINER_NAME:-twofa-cx-web}
+    image: ${IMAGE_NAME:-2fa-cx:latest}
+    container_name: ${CONTAINER_NAME:-2fa-cx}
     restart: unless-stopped
     depends_on:
       api:

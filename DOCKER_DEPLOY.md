@@ -78,8 +78,8 @@ cp .env.example .env
 ```env
 APP_BIND_IP=127.0.0.1
 APP_BIND_PORT=18180
-CONTAINER_NAME=twofa-cx-web
-IMAGE_NAME=twofa-cx:latest
+CONTAINER_NAME=2fa-cx
+IMAGE_NAME=2fa-cx:latest
 ```
 
 如果你想换端口，只改：
@@ -182,19 +182,19 @@ docker compose up -d --build
 例如：
 
 ```bash
-docker build -t twofa-cx:2026-04-11 .
-docker build -t twofa-cx:latest .
+docker build -t 2fa-cx:2026-04-11 .
+docker build -t 2fa-cx:latest .
 ```
 
 出问题后回滚：
 
 ```bash
-docker rm -f twofa-cx-web
+docker rm -f 2fa-cx
 docker run -d \
-  --name twofa-cx-web \
+  --name 2fa-cx \
   --restart unless-stopped \
   -p 127.0.0.1:18180:80 \
-  twofa-cx:2026-04-11
+  2fa-cx:2026-04-11
 ```
 
 ## 为什么不推荐再上一个 Caddy

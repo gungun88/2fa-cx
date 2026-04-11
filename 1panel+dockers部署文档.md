@@ -218,19 +218,19 @@ curl -I https://2fa.cx/2fa/TWOLF3KHBHLTFIX4HS26TR2FKEGOWT73
 建议保留一个带日期标签的镜像：
 
 ```bash
-docker build -t twofa-cx:2026-04-11 .
-docker build -t twofa-cx:latest .
+docker build -t 2fa-cx:2026-04-11 .
+docker build -t 2fa-cx:latest .
 ```
 
 如果需要回滚：
 
 ```bash
-docker rm -f twofa-cx-web
+docker rm -f 2fa-cx
 docker run -d \
-  --name twofa-cx-web \
+  --name 2fa-cx \
   --restart unless-stopped \
   -p 127.0.0.1:18180:80 \
-  twofa-cx:2026-04-11
+  2fa-cx:2026-04-11
 ```
 
 ## 十三、最终建议
