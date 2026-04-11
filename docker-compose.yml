@@ -39,7 +39,10 @@ services:
     cap_drop:
       - ALL
     cap_add:
+      - CHOWN
       - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
     read_only: true
     tmpfs:
       - /var/cache/nginx
