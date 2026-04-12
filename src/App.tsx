@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CaseConverterPage } from '@/pages/CaseConverterPage'
 import { DesktopPet } from '@/components/DesktopPet'
 import { EmojiPage } from '@/pages/EmojiPage'
@@ -89,6 +89,8 @@ export default function App() {
 
     return getViewFromPath(window.location.pathname)
   })
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!isWebsite) {
@@ -97,14 +99,44 @@ export default function App() {
 
     const handlePopState = () => {
       setActiveView(getViewFromPath(window.location.pathname))
+      setIsMobileMenuOpen(false)
     }
 
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [isWebsite])
 
+  useEffect(() => {
+    if (!isWebsite || !isMobileMenuOpen) {
+      return
+    }
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!mobileMenuRef.current?.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMobileMenuOpen, isWebsite])
+
   const handleSelectView = (view: ToolView) => {
     setActiveView(view)
+    setIsMobileMenuOpen(false)
 
     if (!isWebsite) {
       return
@@ -131,41 +163,91 @@ export default function App() {
 
       <div className="relative z-10 mx-auto w-full max-w-[1160px]">
         <header className="sticky top-3 z-20 mb-4 sm:mb-6">
-          <div className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.12),0_6px_18px_rgba(24,95,165,0.06)] sm:rounded-[28px] sm:shadow-[0_24px_80px_rgba(15,23,42,0.14),0_8px_24px_rgba(24,95,165,0.08)]">
+          <div
+            ref={mobileMenuRef}
+            className="overflow-hidden rounded-[22px] border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.12),0_6px_18px_rgba(24,95,165,0.06)] sm:rounded-[28px] sm:shadow-[0_24px_80px_rgba(15,23,42,0.14),0_8px_24px_rgba(24,95,165,0.08)]"
+          >
             <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={() => handleSelectView('totp')}
                 className="shrink-0 rounded-lg outline-none transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-brand-400/40"
-                aria-label="返回 2FA 工具首页"
+                aria-label="Back to 2FA home"
               >
                 <img src="/logo.svg" alt="2FA.CX" className="block h-auto max-h-12 w-auto shrink-0" />
               </button>
 
               {isWebsite ? (
-                <nav className="min-w-0 overflow-x-auto">
-                  <div className="flex items-center justify-end gap-2 pl-2">
-                    {toolItems.map(item => {
-                      const selected = activeView === item.id
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => handleSelectView(item.id)}
-                          className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                            selected
-                              ? 'border-brand-600 bg-brand-600 text-white'
-                              : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      )
-                    })}
+                <>
+                  <div className="sm:hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileMenuOpen(open => !open)}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40"
+                      aria-expanded={isMobileMenuOpen}
+                      aria-haspopup="menu"
+                      aria-label="Open navigation menu"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-5 w-5">
+                        <path
+                          d={isMobileMenuOpen ? 'M6 8L18 8M6 16L18 16' : 'M4 7H20M4 12H20M4 17H20'}
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                </nav>
+
+                  <nav className="hidden min-w-0 sm:block">
+                    <div className="flex items-center justify-end gap-2 pl-2">
+                      {toolItems.map(item => {
+                        const selected = activeView === item.id
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => handleSelectView(item.id)}
+                            className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                              selected
+                                ? 'border-brand-600 bg-brand-600 text-white'
+                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
+                            }`}
+                          >
+                            {item.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </nav>
+                </>
               ) : null}
             </div>
+
+            {isWebsite && isMobileMenuOpen ? (
+              <div className="border-t border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95)_0%,rgba(255,255,255,1)_100%)] px-3 py-3 sm:hidden">
+                <nav className="grid grid-cols-1 gap-2" aria-label="Mobile navigation menu">
+                  {toolItems.map(item => {
+                    const selected = activeView === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectView(item.id)}
+                        className={`rounded-[18px] border px-4 py-3 text-left text-sm font-medium transition-colors ${
+                          selected
+                            ? 'border-brand-600 bg-brand-600 text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </nav>
+              </div>
+            ) : null}
           </div>
         </header>
 
