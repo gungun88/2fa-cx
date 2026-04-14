@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CaseConverterPage } from '@/pages/CaseConverterPage'
 import { DesktopPet } from '@/components/DesktopPet'
 import { EmojiPage } from '@/pages/EmojiPage'
+import { ExtensionPopupPage } from '@/pages/ExtensionPopupPage'
 import { FacebookIdQueryPage } from '@/pages/FacebookIdQueryPage'
 import { FontChangerPage } from '@/pages/FontChangerPage'
 import { TwoFactorPage } from '@/pages/TwoFactorPage'
@@ -146,6 +147,10 @@ export default function App() {
     if (window.location.pathname !== nextPath) {
       window.history.pushState({}, '', nextPath)
     }
+  }
+
+  if (!isWebsite) {
+    return <ExtensionPopupPage />
   }
 
   return (

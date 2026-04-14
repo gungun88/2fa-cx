@@ -17,7 +17,7 @@
       "32": "icons/icon32.png"
     }
   },
-  "permissions": ["clipboardRead", "clipboardWrite"],
+  "permissions": ["clipboardRead", "clipboardWrite", "storage"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   }
