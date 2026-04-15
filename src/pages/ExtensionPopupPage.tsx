@@ -2,10 +2,11 @@
 import jsQR from 'jsqr'
 import { isValidBase32 } from '@/utils/base32'
 import { generateTOTP, secondsLeft } from '@/utils/crypto'
+import popupBrandIcon from '../../extension/icons/icon128.png'
 
 const STORAGE_KEY = 'twofa-popup-accounts'
 const DEMO_ACCOUNT = {
-  name: 'Google \u6f14\u793a\u8d26\u53f7',
+  name: 'Google 演示账号',
   issuer: '2FA.CX',
   secret: 'TWOLF3KHBHLTFIX4HS26TR2FKEGOWT73',
 }
@@ -324,11 +325,11 @@ function resolveAccountInput(form: AccountFormState): ResolvedAccountInput {
   const name = (form.name.trim() || parsed?.name || issuer).trim()
 
   if (!name) {
-    return { error: '\u8bf7\u586b\u5199\u8d26\u53f7\u540d\u79f0\u3002' }
+    return { error: '请填写账号名称。' }
   }
 
   if (!isValidBase32(secret)) {
-    return { error: '\u8bf7\u8f93\u5165\u6b63\u786e\u7684\u9a8c\u8bc1\u7801\u5bc6\u94a5\uff0c\u4e0d\u4f1a\u586b\u7684\u8bdd\uff0c\u5efa\u8bae\u76f4\u63a5\u5bfc\u5165\u4e8c\u7ef4\u7801\u3002' }
+    return { error: '请输入正确的验证码密钥，不会填的话，建议直接导入二维码。' }
   }
 
   return {
@@ -1018,13 +1019,13 @@ export function ExtensionPopupPage() {
   return (
     <div className="min-h-[620px] bg-[var(--popup-page)] text-[var(--popup-text)]" style={popupThemeStyle}>
       <div
-        className="flex min-h-[620px] flex-col"
+        className="relative flex min-h-[620px] flex-col"
         style={{
           backgroundImage:
             'radial-gradient(circle at top, rgba(66,133,244,0.16) 0%, rgba(66,133,244,0) 40%), radial-gradient(circle at 18% 18%, rgba(251,188,5,0.14) 0%, rgba(251,188,5,0) 24%), radial-gradient(circle at 82% 10%, rgba(234,67,53,0.12) 0%, rgba(234,67,53,0) 22%), linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 42%, #F1F3F4 100%)',
         }}
       >
-        <div className="px-3 py-3">
+        <div className="relative z-30 px-3 py-3">
           <div className="relative flex items-center justify-between gap-3 rounded-full border border-[var(--popup-border)] bg-[rgba(255,255,255,0.76)] px-3 py-2.5 shadow-[0_8px_20px_rgba(60,64,67,0.08)] backdrop-blur-sm">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <button
@@ -1039,7 +1040,7 @@ export function ExtensionPopupPage() {
                 }
                 className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--popup-border)] bg-[var(--popup-surface)]/78 text-[var(--popup-text-muted)] transition-colors hover:bg-[var(--popup-surface)] hover:text-[var(--popup-text)]"
                 aria-expanded={menuOpen}
-                aria-label="\u6253\u5f00\u83dc\u5355"
+                aria-label="打开菜单"
               >
                 <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
                   <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -1064,7 +1065,7 @@ export function ExtensionPopupPage() {
                   value={query}
                   onChange={event => setQuery(event.target.value)}
                   onFocus={() => setMenuOpen(false)}
-                  placeholder="\u641c\u7d22\u5df2\u4fdd\u5b58\u7684\u8d26\u53f7"
+                  placeholder="搜索已保存的账号"
                   className="w-full min-w-0 bg-transparent text-[15px] text-[var(--popup-text)] outline-none placeholder:text-[var(--popup-text-muted)]"
                 />
               </div>
@@ -1090,8 +1091,8 @@ export function ExtensionPopupPage() {
               <IconButton
                 title={
                   showCodes
-                    ? '\u9690\u85cf\u9a8c\u8bc1\u7801'
-                    : '\u663e\u793a\u9a8c\u8bc1\u7801'
+                    ? '隐藏验证码'
+                    : '显示验证码'
                 }
                 onClick={() => setShowCodes(visible => !visible)}
                 active={!showCodes}
@@ -1123,76 +1124,129 @@ export function ExtensionPopupPage() {
                 type="button"
                 onClick={() => showNotice(`已保存 ${accounts.length} 个账号`)}
                 className="inline-flex h-8 min-w-[44px] items-center justify-center rounded-full border border-[var(--popup-border)] bg-[var(--popup-surface)]/82 px-3 text-xs font-semibold text-[var(--popup-text-muted)] transition-colors hover:border-[var(--popup-border-strong)] hover:bg-[var(--popup-surface)] hover:text-[var(--popup-text)]"
-                aria-label="\u8d26\u53f7\u6570\u91cf"
+                aria-label="账号数量"
               >
                 {String(Math.min(accounts.length || 1, 99)).padStart(2, '0')}
               </button>
             </div>
 
-            {menuOpen ? (
-              <div className="absolute left-0 top-[calc(100%+10px)] z-20 w-[238px] rounded-3xl border border-[var(--popup-border)] bg-[var(--popup-surface)] p-2 shadow-[0_22px_46px_rgba(60,64,67,0.22)]">
-                <button
-                  type="button"
-                  onClick={openCreateComposer}
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-accent-soft)] text-sm font-semibold text-[var(--popup-accent-strong)]">
-                    手动
-                  </span>
-                  {'手动输入'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExportJson}
-                  className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-warning-soft)] text-[11px] font-semibold text-[var(--popup-text)]">
-                    备份
-                  </span>
-                  {'下载备份文件'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleJsonImportClick}
-                  className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-success-soft)] text-[11px] font-semibold text-[var(--popup-success)]">
-                    恢复
-                  </span>
-                  {'从备份恢复'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleQrImportClick}
-                  className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-accent-soft)] text-[11px] font-semibold text-[var(--popup-accent-strong)]">
-                    扫码
-                  </span>
-                  {'扫码添加账号'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddDemoAccount}
-                  className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-warning-soft)] text-[11px] font-semibold text-[var(--popup-text)]">
-                    示例
-                  </span>
-                  {'看看示例'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium text-[var(--popup-danger)] transition-colors hover:bg-[var(--popup-danger-soft)]"
-                >
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-danger-soft)] text-[11px] font-semibold">删除</span>
-                  {'删除所有账号'}
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
+
+        {menuOpen ? (
+          <div className="absolute inset-0 z-40" onClick={() => setMenuOpen(false)}>
+            <div
+              className="absolute left-3 top-[72px] w-[238px] rounded-3xl border border-[var(--popup-border)] bg-[var(--popup-surface)] p-2 shadow-[0_22px_46px_rgba(60,64,67,0.22)]"
+              onClick={event => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={openCreateComposer}
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-accent-soft)] text-[var(--popup-accent-strong)]">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+                    <path
+                      d="M5 16.25V19H7.75L17.1 9.65L14.35 6.9L5 16.25Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12.9 8.35L15.65 11.1"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                    <path
+                      d="M14.35 6.9L15.5 5.75C15.9 5.35 16.55 5.35 16.95 5.75L18.25 7.05C18.65 7.45 18.65 8.1 18.25 8.5L17.1 9.65"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                {'手动输入'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportJson}
+                className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-warning-soft)] text-[var(--popup-text)]">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+                    <path d="M12 4V14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M8.5 10.5L12 14L15.5 10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 16.5V18C5 18.55 5.45 19 6 19H18C18.55 19 19 18.55 19 18V16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </span>
+                {'下载备份文件'}
+              </button>
+              <button
+                type="button"
+                onClick={handleJsonImportClick}
+                className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-success-soft)] text-[var(--popup-success)]">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+                    <path d="M12 20V10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M8.5 13.5L12 10L15.5 13.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M5 7.5V6C5 5.45 5.45 5 6 5H18C18.55 5 19 5.45 19 6V7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </span>
+                {'从备份恢复'}
+              </button>
+              <button
+                type="button"
+                onClick={handleQrImportClick}
+                className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-accent-soft)] text-[var(--popup-accent-strong)]">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+                    <path d="M4 8V5.5C4 4.67 4.67 4 5.5 4H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M16 4H18.5C19.33 4 20 4.67 20 5.5V8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M20 16V18.5C20 19.33 19.33 20 18.5 20H16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M8 20H5.5C4.67 20 4 19.33 4 18.5V16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M9 9H11V11H9V9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M13 9H15V11H13V9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M9 13H11V15H9V13Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                    <path d="M13 13H15V15H13V13Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                {'扫码添加账号'}
+              </button>
+              <button
+                type="button"
+                onClick={handleAddDemoAccount}
+                className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--popup-accent-soft)]"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-warning-soft)] text-[var(--popup-text)]">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+                    <path d="M12 5L13.85 9.15L18 11L13.85 12.85L12 17L10.15 12.85L6 11L10.15 9.15L12 5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                {'看看示例'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="mt-1 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium text-[var(--popup-danger)] transition-colors hover:bg-[var(--popup-danger-soft)]"
+              >
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--popup-danger-soft)]">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+                    <path d="M6 7H18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M9.5 7V5.75C9.5 5.34 9.84 5 10.25 5H13.75C14.16 5 14.5 5.34 14.5 5.75V7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M8 9.5V17.25C8 17.66 8.34 18 8.75 18H15.25C15.66 18 16 17.66 16 17.25V9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M10.5 11V15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    <path d="M13.5 11V15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  </svg>
+                </span>
+                {'删除所有账号'}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="relative flex-1 overflow-hidden bg-[var(--popup-canvas)] px-3 pb-24">
           {notice ? (
@@ -1242,7 +1296,7 @@ export function ExtensionPopupPage() {
                         type="button"
                         onClick={() => openEditComposer(account)}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--popup-border)] bg-[var(--popup-surface)] text-[var(--popup-text-muted)] transition-colors hover:border-[var(--popup-accent)] hover:bg-[var(--popup-accent-soft)] hover:text-[var(--popup-accent-strong)]"
-                        aria-label={`\u7f16\u8f91 ${account.name}`}
+                        aria-label={`编辑 ${account.name}`}
                         title="编辑"
                       >
                         <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]">
@@ -1258,7 +1312,7 @@ export function ExtensionPopupPage() {
                         type="button"
                         onClick={() => handleDeleteAccount(account)}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--popup-border)] bg-[var(--popup-surface)] text-[var(--popup-text-muted)] transition-colors hover:border-[var(--popup-danger)] hover:bg-[var(--popup-danger-soft)] hover:text-[var(--popup-danger)]"
-                        aria-label={`\u5220\u9664 ${account.name}`}
+                        aria-label={`删除 ${account.name}`}
                         title="删除"
                       >
                         <svg viewBox="0 0 24 24" fill="none" className="h-[18px] w-[18px]">
@@ -1333,21 +1387,17 @@ export function ExtensionPopupPage() {
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="flex h-32 w-32 items-center justify-center rounded-[36px] bg-[linear-gradient(180deg,#FFFFFF_0%,#E8F0FE_65%,#FEF7E0_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_18px_38px_rgba(60,64,67,0.1)]">
                 <div className="flex h-20 w-20 items-center justify-center rounded-[28px] border border-[var(--popup-surface)] bg-[var(--popup-surface)]/80">
-                  <svg viewBox="0 0 24 24" fill="none" className="h-10 w-10 text-[var(--popup-accent)]">
-                    <rect x="6" y="8" width="12" height="11" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-                    <path d="M9 8V6.8C9 5.25 10.25 4 11.8 4H12.2C13.75 4 15 5.25 15 6.8V8" stroke="currentColor" strokeWidth="1.8" />
-                    <path d="M12 12V15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
+                  <img src={popupBrandIcon} alt="2FA.CX" className="h-14 w-14 object-contain" />
                 </div>
               </div>
               <p className="mt-5 text-lg font-semibold text-[var(--popup-text)]">
                 {accounts.length
-                  ? '\u6ca1\u6709\u5339\u914d\u7684\u8d26\u53f7'
-                  : '\u8fd8\u6ca1\u6709\u8d26\u53f7'}
+                  ? '没有匹配的账号'
+                  : '还没有账号'}
               </p>
               <p className="mt-2 max-w-[260px] text-sm leading-6 text-[var(--popup-text-muted)]">
                 {accounts.length
-                  ? '\u8bd5\u8bd5\u522b\u7684\u5173\u952e\u8bcd\uff0c\u6216\u8005\u6e05\u7a7a\u5f53\u524d\u641c\u7d22\u3002'
+                  ? '试试别的关键词，或者清空当前搜索。'
                   : '可以直接扫码添加，也可以手动输入账号信息。'}
               </p>
               {accounts.length && query ? (
@@ -1400,7 +1450,7 @@ export function ExtensionPopupPage() {
             type="button"
             onClick={openCreateComposer}
             className="relative flex h-14 w-14 items-center justify-center rounded-[20px] border border-[var(--popup-accent)] bg-[var(--popup-accent)] text-white shadow-[0_20px_32px_rgba(66,133,244,0.28)] transition-transform hover:scale-[1.02] hover:bg-[var(--popup-accent-strong)]"
-            aria-label="\u6dfb\u52a0\u8d26\u53f7"
+            aria-label="添加账号"
           >
             <svg viewBox="0 0 24 24" fill="none" className="h-7 w-7">
               <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
@@ -1414,7 +1464,7 @@ export function ExtensionPopupPage() {
               type="button"
               className="absolute inset-0 cursor-default"
               onClick={closeComposer}
-              aria-label="\u5173\u95ed\u5f39\u7a97"
+              aria-label="关闭弹窗"
             />
             <div className="relative w-full rounded-t-[32px] bg-[var(--popup-surface)] px-4 pb-6 pt-4 shadow-[0_-20px_48px_rgba(60,64,67,0.22)] animate-fade-up">
               <div className="mx-auto h-1.5 w-14 rounded-full bg-[var(--popup-border)]" />
@@ -1422,11 +1472,13 @@ export function ExtensionPopupPage() {
                 <div>
                   <p className="text-lg font-semibold text-[var(--popup-text)]">
                     {editingId
-                      ? '修改这个账号'
-                      : '添加一个账号'}
+                      ? '编辑账户'
+                      : '添加账户'}
                   </p>
                   <p className="mt-1 text-sm text-[var(--popup-text-muted)]">
-                    {'会手动填写就直接输入，不会的话，建议从菜单里直接扫码添加。'}
+                    {editingId
+                      ? '修改账户名称、服务名称或密钥信息。'
+                      : '手动输入账户信息和密钥，或从菜单中扫描二维码快速添加。'}
                   </p>
                 </div>
                 {importPending ? (
@@ -1485,7 +1537,7 @@ export function ExtensionPopupPage() {
                   onClick={closeComposer}
                   className="flex-1 rounded-2xl border border-[var(--popup-border)] px-4 py-3 text-sm font-semibold text-[var(--popup-text-muted)] transition-colors hover:bg-[var(--popup-surface-muted)]"
                 >
-                  {'\u53d6\u6d88'}
+                  {'取消'}
                 </button>
                 <button
                   type="button"
