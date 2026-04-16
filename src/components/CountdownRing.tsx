@@ -20,7 +20,12 @@ export function CountdownRing({ secs }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg width="56" height="56" viewBox="0 0 56 56" aria-label={`距离下次刷新还有 ${secs} 秒`}>
+      <svg
+        width="56"
+        height="56"
+        viewBox="0 0 56 56"
+        aria-label={`\u8ddd\u79bb\u4e0b\u6b21\u5237\u65b0\u8fd8\u6709 ${secs} \u79d2`}
+      >
         <circle cx="28" cy="28" r={RADIUS} fill="none" stroke="#d6d3cb" strokeWidth="4" />
         <circle
           cx="28"
@@ -48,7 +53,9 @@ export function CountdownRing({ secs }: Props) {
           {secs}
         </text>
       </svg>
-      <span className="text-xs font-semibold text-slate-600">下次刷新：{label}</span>
+      <span className="text-xs font-semibold text-slate-600">
+        {`\u4e0b\u6b21\u5237\u65b0\uff1a${label}`}
+      </span>
     </div>
   )
 }

@@ -1,18 +1,18 @@
 {
   "name": "2fa-guard",
   "version": "1.0.0",
-  "description": "2FA Guard web and browser extension for local TOTP codes, QR import, and JSON backup.",
+  "description": "2FA Guard web tools.",
   "private": true,
   "scripts": {
     "dev": "vite",
     "dev:api": "node server/index.mjs",
     "build": "tsc && vite build",
-    "build:extension": "tsc && vite build --config vite.extension.config.ts",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx"
   },
   "dependencies": {
     "jsqr": "^1.4.0",
+    "playwright-core": "^1.59.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

@@ -1,29 +1,31 @@
 export type FacebookIdKind = 'account' | 'page' | 'group' | 'adPost' | 'generic'
 
+type FacebookMatchConfidence = 'high' | 'medium' | 'low'
+
 export interface FacebookIdMatch {
   kind: FacebookIdKind
   label: string
   id: string
   source: string
   hint?: string
+  confidence: FacebookMatchConfidence
 }
 
 export interface FacebookLookupResult {
-  normalizedInput: string
-  hostname?: string
+  ok: boolean
+  status: number
+  normalizedInput?: string
+  normalizedUrl?: string
   matches: FacebookIdMatch[]
   note?: string
+  error?: string
 }
 
-const FACEBOOK_HOST_PATTERNS = ['facebook.com', 'fb.com', 'fb.watch']
 const NUMERIC_ID_RE = /^\d{5,}$/
+const FACEBOOK_HOST_PATTERNS = ['facebook.com', 'fb.com', 'fb.watch']
 
-function isFacebookHost(hostname: string) {
-  return FACEBOOK_HOST_PATTERNS.some(pattern => hostname === pattern || hostname.endsWith(`.${pattern}`))
-}
-
-function normalizeUrlInput(input: string) {
-  const trimmed = input.trim()
+function normalizeInput(input: string) {
+  const trimmed = String(input ?? '').trim()
   if (!trimmed) {
     return ''
   }
@@ -39,33 +41,58 @@ function normalizeUrlInput(input: string) {
   return trimmed
 }
 
-function parseUrl(input: string) {
-  const normalized = normalizeUrlInput(input)
+function isFacebookHost(hostname: string) {
+  return FACEBOOK_HOST_PATTERNS.some(pattern => hostname === pattern || hostname.endsWith(`.${pattern}`))
+}
+
+function isLikelyFacebookUrl(value: string) {
   try {
-    return normalized ? new URL(normalized) : null
+    const url = new URL(value)
+    return isFacebookHost(url.hostname)
   } catch {
-    return null
+    return false
   }
 }
 
-function getNumericSegments(pathname: string) {
-  return pathname
-    .split('/')
-    .map(segment => segment.trim())
-    .filter(Boolean)
-    .filter(segment => NUMERIC_ID_RE.test(segment))
+function getLabel(kind: FacebookIdKind) {
+  switch (kind) {
+    case 'account':
+      return 'Facebook \u8d26\u53f7 ID'
+    case 'page':
+      return 'Facebook \u4e13\u9875 ID'
+    case 'group':
+      return 'Facebook \u5c0f\u7ec4 ID'
+    case 'adPost':
+      return 'Facebook \u5e16\u5b50 ID'
+    case 'generic':
+    default:
+      return 'Facebook \u6570\u5b57 ID'
+  }
 }
 
-function getLastNumericSegment(pathname: string) {
-  const segments = getNumericSegments(pathname)
-  return segments.length > 0 ? segments[segments.length - 1] : undefined
+function buildMatch(
+  kind: FacebookIdKind,
+  id: string,
+  source: string,
+  confidence: FacebookMatchConfidence,
+  hint?: string
+): FacebookIdMatch {
+  return {
+    kind,
+    label: getLabel(kind),
+    id,
+    source,
+    hint,
+    confidence,
+  }
 }
 
 function addMatch(
   bucket: Map<string, FacebookIdMatch>,
   kind: FacebookIdKind,
-  id: string | null,
+  id: string | null | undefined,
   source: string,
+  confidence: FacebookMatchConfidence,
   hint?: string
 ) {
   if (!id || !NUMERIC_ID_RE.test(id)) {
@@ -73,168 +100,259 @@ function addMatch(
   }
 
   const key = `${kind}:${id}`
-  if (bucket.has(key)) {
+  if (!bucket.has(key)) {
+    bucket.set(key, buildMatch(kind, id, source, confidence, hint))
+  }
+}
+
+function collectQueryParamMatches(url: URL, bucket: Map<string, FacebookIdMatch>) {
+  const queryMappings: Array<{
+    key: string
+    kind: FacebookIdKind
+    source: string
+    confidence: FacebookMatchConfidence
+  }> = [
+    { key: 'id', kind: 'account', source: 'URL \u53c2\u6570 id', confidence: 'high' },
+    { key: 'story_fbid', kind: 'adPost', source: 'URL \u53c2\u6570 story_fbid', confidence: 'high' },
+    { key: 'fbid', kind: 'adPost', source: 'URL \u53c2\u6570 fbid', confidence: 'high' },
+    { key: 'post_id', kind: 'adPost', source: 'URL \u53c2\u6570 post_id', confidence: 'high' },
+    { key: 'page_id', kind: 'page', source: 'URL \u53c2\u6570 page_id', confidence: 'high' },
+    { key: 'group_id', kind: 'group', source: 'URL \u53c2\u6570 group_id', confidence: 'high' },
+    { key: 'object_story_id', kind: 'adPost', source: 'URL \u53c2\u6570 object_story_id', confidence: 'high' },
+  ]
+
+  for (const mapping of queryMappings) {
+    addMatch(bucket, mapping.kind, url.searchParams.get(mapping.key), mapping.source, mapping.confidence)
+  }
+}
+
+function collectPathMatches(url: URL, bucket: Map<string, FacebookIdMatch>) {
+  const segments = url.pathname.split('/').filter(Boolean)
+  if (segments.length === 0) {
     return
   }
 
-  const labelMap: Record<FacebookIdKind, string> = {
-    account: 'Facebook 账号 ID',
-    page: 'Facebook 主页 ID',
-    group: 'Facebook 群组 ID',
-    adPost: 'Facebook 广告帖 ID',
-    generic: 'Facebook 数字 ID',
+  if (NUMERIC_ID_RE.test(segments[0])) {
+    addMatch(bucket, 'generic', segments[0], '\u8def\u5f84\u4e2d\u7684\u7eaf\u6570\u5b57\u6bb5', 'medium')
   }
 
-  bucket.set(key, {
-    kind,
-    label: labelMap[kind],
-    id,
-    source,
-    hint,
-  })
+  if (segments[0] === 'profile.php') {
+    addMatch(bucket, 'account', url.searchParams.get('id'), 'profile.php \u9875\u9762\u53c2\u6570', 'high')
+    return
+  }
+
+  if (segments[0] === 'people' && segments.length >= 3) {
+    addMatch(bucket, 'account', segments[2], '/people/.../{id} \u8def\u5f84', 'high')
+  }
+
+  if (segments[0] === 'pages' && segments.length >= 3) {
+    addMatch(bucket, 'page', segments[2], '/pages/.../{id} \u8def\u5f84', 'high')
+  }
+
+  if (segments[0] === 'groups' && segments.length >= 2) {
+    addMatch(bucket, 'group', segments[1], '/groups/{id} \u8def\u5f84', 'high')
+  }
+
+  if (segments[0] === 'watch' && segments.length >= 2) {
+    addMatch(bucket, 'adPost', segments[1], '/watch/{id} \u8def\u5f84', 'medium')
+  }
+
+  if (segments[0] === 'reel' && segments.length >= 2) {
+    addMatch(bucket, 'adPost', segments[1], '/reel/{id} \u8def\u5f84', 'medium')
+  }
+
+  if (segments.length >= 3 && segments[1] === 'posts') {
+    addMatch(bucket, 'adPost', segments[2], '/{name}/posts/{id} \u8def\u5f84', 'medium')
+  }
+
+  if (segments.length >= 3 && segments[1] === 'videos') {
+    addMatch(bucket, 'adPost', segments[2], '/{name}/videos/{id} \u8def\u5f84', 'medium')
+  }
+
+  for (const segment of segments) {
+    if (NUMERIC_ID_RE.test(segment)) {
+      addMatch(bucket, 'generic', segment, '\u8def\u5f84\u7247\u6bb5\u4e2d\u7684\u6570\u5b57 ID', 'low')
+    }
+  }
 }
 
-function collectFromSearchParams(url: URL, bucket: Map<string, FacebookIdMatch>) {
-  const pathname = url.pathname.toLowerCase()
-  const params = url.searchParams
-
-  addMatch(bucket, 'adPost', params.get('story_fbid'), 'story_fbid 参数', '常见于帖子或广告帖链接')
-  addMatch(bucket, 'adPost', params.get('fbid'), 'fbid 参数', '常见于帖子、图片或视频链接')
-  addMatch(bucket, 'adPost', params.get('post_id'), 'post_id 参数', '常见于广告帖或帖子预览链接')
-  addMatch(bucket, 'adPost', params.get('multi_permalinks')?.split(',')[0] ?? null, 'multi_permalinks 参数')
-  addMatch(bucket, 'group', params.get('group_id'), 'group_id 参数')
-  addMatch(bucket, 'page', params.get('page_id'), 'page_id 参数')
-
-  if (pathname === '/profile.php') {
-    addMatch(bucket, 'account', params.get('id'), 'profile.php?id 参数')
+function collectInlineMatches(input: string, bucket: Map<string, FacebookIdMatch>) {
+  if (NUMERIC_ID_RE.test(input)) {
+    addMatch(bucket, 'generic', input, '\u76f4\u63a5\u8f93\u5165\u7684\u6570\u5b57 ID', 'high')
+    return
   }
 
-  if (pathname === '/permalink.php' || pathname === '/story.php') {
-    addMatch(bucket, 'page', params.get('id'), '帖子归属 id 参数', '通常是主页或账号 ID')
-  }
+  const patterns: Array<{
+    regex: RegExp
+    kind: FacebookIdKind
+    source: string
+    confidence: FacebookMatchConfidence
+  }> = [
+    { regex: /(?:^|[?&])id=(\d{5,})(?:$|[&#])/i, kind: 'account', source: '\u5b57\u7b26\u4e32\u4e2d\u7684 id \u53c2\u6570', confidence: 'medium' },
+    { regex: /(?:^|[?&])story_fbid=(\d{5,})(?:$|[&#])/i, kind: 'adPost', source: '\u5b57\u7b26\u4e32\u4e2d\u7684 story_fbid \u53c2\u6570', confidence: 'medium' },
+    { regex: /(?:^|[?&])fbid=(\d{5,})(?:$|[&#])/i, kind: 'adPost', source: '\u5b57\u7b26\u4e32\u4e2d\u7684 fbid \u53c2\u6570', confidence: 'medium' },
+    { regex: /(?:^|[?&])page_id=(\d{5,})(?:$|[&#])/i, kind: 'page', source: '\u5b57\u7b26\u4e32\u4e2d\u7684 page_id \u53c2\u6570', confidence: 'medium' },
+    { regex: /(?:^|[?&])group_id=(\d{5,})(?:$|[&#])/i, kind: 'group', source: '\u5b57\u7b26\u4e32\u4e2d\u7684 group_id \u53c2\u6570', confidence: 'medium' },
+  ]
 
-  if (pathname.includes('/ads/library')) {
-    addMatch(bucket, 'adPost', params.get('id'), '广告资料库 id 参数')
-  }
-}
-
-function collectFromPath(url: URL, bucket: Map<string, FacebookIdMatch>) {
-  const segments = url.pathname
-    .split('/')
-    .map(segment => segment.trim())
-    .filter(Boolean)
-
-  const lowerSegments = segments.map(segment => segment.toLowerCase())
-
-  const groupsIndex = lowerSegments.indexOf('groups')
-  if (groupsIndex >= 0) {
-    addMatch(bucket, 'group', segments[groupsIndex + 1] ?? null, '/groups/{id}')
-
-    const permalinkIndex = lowerSegments.indexOf('permalink')
-    if (permalinkIndex >= 0) {
-      addMatch(bucket, 'adPost', segments[permalinkIndex + 1] ?? null, '/groups/{groupId}/permalink/{postId}')
+  for (const pattern of patterns) {
+    const match = input.match(pattern.regex)
+    if (match) {
+      addMatch(bucket, pattern.kind, match[1], pattern.source, pattern.confidence)
     }
   }
 
-  const peopleIndex = lowerSegments.indexOf('people')
-  if (peopleIndex >= 0) {
-    addMatch(bucket, 'account', getLastNumericSegment(url.pathname) ?? null, '/people/.../{accountId}')
-  }
-
-  const pagesIndex = lowerSegments.indexOf('pages')
-  if (pagesIndex >= 0) {
-    addMatch(bucket, 'page', getLastNumericSegment(url.pathname) ?? null, '/pages/.../{pageId}')
-  }
-
-  const pageIndex = lowerSegments.indexOf('page')
-  if (pageIndex >= 0) {
-    addMatch(bucket, 'page', segments[pageIndex + 1] ?? null, '/page/{pageId}')
-  }
-
-  const postsIndex = lowerSegments.indexOf('posts')
-  if (postsIndex >= 0) {
-    addMatch(bucket, 'adPost', segments[postsIndex + 1] ?? null, '/posts/{postId}')
-  }
-
-  const videosIndex = lowerSegments.indexOf('videos')
-  if (videosIndex >= 0) {
-    addMatch(bucket, 'adPost', segments[videosIndex + 1] ?? null, '/videos/{postId}')
-  }
-
-  const reelIndex = lowerSegments.indexOf('reel')
-  if (reelIndex >= 0) {
-    addMatch(bucket, 'adPost', segments[reelIndex + 1] ?? null, '/reel/{postId}')
-  }
-
-  const permalinkIndex = lowerSegments.indexOf('permalink')
-  if (permalinkIndex >= 0) {
-    addMatch(bucket, 'adPost', segments[permalinkIndex + 1] ?? null, '/permalink/{postId}')
-  }
-
-  const numericTail = getLastNumericSegment(url.pathname) ?? null
-  if (numericTail && bucket.size === 0) {
-    addMatch(bucket, 'generic', numericTail, '路径中的数字 ID')
+  const tail = input.match(/(?:people|pages)\/[^/?#]+\/(\d{5,})/i)
+  if (tail) {
+    const kind = /people\//i.test(input) ? 'account' : 'page'
+    addMatch(bucket, kind, tail[1], '\u5b57\u7b26\u4e32\u8def\u5f84\u4e2d\u7684\u5c3e\u90e8 ID', 'medium')
   }
 }
 
-export function canUseFacebookResolver(input: string) {
-  const normalized = normalizeUrlInput(input)
+function extractLocalMatches(input: string) {
+  const bucket = new Map<string, FacebookIdMatch>()
+
+  collectInlineMatches(input, bucket)
+
   try {
-    const url = new URL(normalized)
-    return isFacebookHost(url.hostname)
+    const url = new URL(input)
+    if (isFacebookHost(url.hostname)) {
+      collectQueryParamMatches(url, bucket)
+      collectPathMatches(url, bucket)
+    }
   } catch {
+    return Array.from(bucket.values())
+  }
+
+  return Array.from(bucket.values())
+}
+
+function mergeMatches(localMatches: FacebookIdMatch[], remoteMatches: Array<Partial<FacebookIdMatch>>) {
+  const bucket = new Map<string, FacebookIdMatch>()
+
+  for (const match of localMatches) {
+    bucket.set(`${match.kind}:${match.id}`, match)
+  }
+
+  for (const match of remoteMatches) {
+    if (!match.id || !match.kind) {
+      continue
+    }
+
+    const key = `${match.kind}:${match.id}`
+    if (!bucket.has(key)) {
+      bucket.set(
+        key,
+        buildMatch(
+          match.kind,
+          match.id,
+          match.source || '\u670d\u52a1\u7aef\u89e3\u6790',
+          match.confidence || 'medium',
+          match.hint
+        )
+      )
+    }
+  }
+
+  return Array.from(bucket.values())
+}
+
+export function canUseFacebookResolver() {
+  if (typeof window === 'undefined') {
     return false
   }
+
+  return /^https?:$/i.test(window.location.protocol)
 }
 
-export function lookupFacebookIds(input: string): FacebookLookupResult {
-  const normalizedInput = input.trim()
-  const matches = new Map<string, FacebookIdMatch>()
-
+export async function lookupFacebookIds(input: string): Promise<FacebookLookupResult> {
+  const normalizedInput = normalizeInput(input)
   if (!normalizedInput) {
-    return { normalizedInput: '', matches: [] }
-  }
-
-  if (NUMERIC_ID_RE.test(normalizedInput)) {
-    addMatch(matches, 'generic', normalizedInput, '直接输入的数字 ID', '可作为账号、主页、群组或广告帖 ID 使用')
     return {
-      normalizedInput,
-      matches: Array.from(matches.values()),
-    }
-  }
-
-  const url = parseUrl(normalizedInput)
-  if (!url || !isFacebookHost(url.hostname)) {
-    return {
-      normalizedInput,
-      hostname: url?.hostname,
+      ok: false,
+      status: 400,
       matches: [],
-      note: normalizedInput ? '当前输入不是可识别的 Facebook 链接或数字 ID。' : undefined,
+      error: '\u8bf7\u8f93\u5165 Facebook \u94fe\u63a5\u6216\u6570\u5b57 ID',
     }
   }
 
-  collectFromSearchParams(url, matches)
-  collectFromPath(url, matches)
+  const localMatches = extractLocalMatches(normalizedInput)
+  const localOnlyResult: FacebookLookupResult = {
+    ok: localMatches.length > 0,
+    status: localMatches.length > 0 ? 200 : 422,
+    normalizedInput,
+    matches: localMatches,
+    note:
+      localMatches.length > 0
+        ? '\u5df2\u5728\u5f53\u524d\u9875\u9762\u5b8c\u6210\u672c\u5730\u89e3\u6790\u3002'
+        : '\u672a\u80fd\u4ec5\u51ed\u94fe\u63a5\u7ed3\u6784\u76f4\u63a5\u63d0\u53d6\u7a33\u5b9a ID\u3002',
+  }
 
-  let note: string | undefined
-  if (matches.size === 0) {
-    const segments = url.pathname
-      .split('/')
-      .map(segment => segment.trim())
-      .filter(Boolean)
+  if (!canUseFacebookResolver() || !isLikelyFacebookUrl(normalizedInput)) {
+    if (localMatches.length > 0) {
+      return localOnlyResult
+    }
 
-    if (segments.length === 1 && !NUMERIC_ID_RE.test(segments[0])) {
-      note =
-        '这是用户名主页链接，地址里只有用户名，没有数字 ID。当前工具是本地解析，只能提取链接里已经出现的数字 ID；如果要把用户名解析成真实 Facebook ID，需要服务端请求 Facebook 或第三方接口。'
-    } else {
-      note = '没有识别到可用数字 ID，请尽量粘贴包含数字参数的 Facebook 原始链接。'
+    return {
+      ...localOnlyResult,
+      ok: false,
+      status: 400,
+      error: '\u8bf7\u8f93\u5165 Facebook \u94fe\u63a5\u3001`profile.php?id=...`\u6216\u7eaf\u6570\u5b57 ID',
     }
   }
 
-  return {
-    normalizedInput: url.toString(),
-    hostname: url.hostname,
-    matches: Array.from(matches.values()),
-    note,
+  try {
+    const response = await fetch(`/api/facebook/resolve?input=${encodeURIComponent(normalizedInput)}`, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    const data = (await response.json()) as FacebookLookupResult & { matches?: Array<Partial<FacebookIdMatch>> }
+    const mergedMatches = mergeMatches(localMatches, data.matches || [])
+
+    if (response.ok || data.ok) {
+      return {
+        ok: mergedMatches.length > 0,
+        status: data.status || response.status || 200,
+        normalizedInput,
+        normalizedUrl: data.normalizedUrl,
+        matches: mergedMatches,
+        note: data.note || localOnlyResult.note,
+        error: mergedMatches.length > 0 ? undefined : data.error,
+      }
+    }
+
+    if (localMatches.length > 0) {
+      return {
+        ...localOnlyResult,
+        note: '\u670d\u52a1\u7aef\u89e3\u6790\u672a\u8fd4\u56de\u66f4\u591a\u7ed3\u679c\uff0c\u4e0b\u65b9\u4ecd\u663e\u793a\u672c\u5730\u89e3\u6790\u7ed3\u679c\u3002',
+      }
+    }
+
+    return {
+      ok: false,
+      status: data.status || response.status || 502,
+      normalizedInput,
+      matches: mergedMatches,
+      note: data.note,
+      error: data.error || '\u670d\u52a1\u7aef\u89e3\u6790\u5931\u8d25',
+    }
+  } catch {
+    if (localMatches.length > 0) {
+      return {
+        ...localOnlyResult,
+        note: '\u65e0\u6cd5\u8fde\u63a5\u670d\u52a1\u7aef\uff0c\u5df2\u81ea\u52a8\u56de\u9000\u5230\u672c\u5730\u89e3\u6790\u6a21\u5f0f\u3002',
+      }
+    }
+
+    return {
+      ok: false,
+      status: 502,
+      normalizedInput,
+      matches: [],
+      error: '\u670d\u52a1\u7aef\u89e3\u6790\u4e0d\u53ef\u7528\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5',
+    }
   }
 }

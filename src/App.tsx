@@ -1,17 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { CaseConverterPage } from '@/pages/CaseConverterPage'
 import { DesktopPet } from '@/components/DesktopPet'
+import { CaseConverterPage } from '@/pages/CaseConverterPage'
 import { EmojiPage } from '@/pages/EmojiPage'
-import { ExtensionPopupPage } from '@/pages/ExtensionPopupPage'
 import { FacebookIdQueryPage } from '@/pages/FacebookIdQueryPage'
 import { FontChangerPage } from '@/pages/FontChangerPage'
 import { TwoFactorPage } from '@/pages/TwoFactorPage'
 
-function isPopupPath(pathname: string) {
-  return pathname.endsWith('/popup.html') || pathname.endsWith('popup.html')
-}
-
-type ToolView = 'totp' | 'facebook' | 'font-changer' | 'case-converter' | 'emoji'
+type WebsiteView = 'totp' | 'facebook' | 'font-changer' | 'case-converter' | 'emoji'
 
 const FACEBOOK_ID_QUERY_PATH = '/facebook-id-query'
 const LEGACY_FACEBOOK_PATH = '/facebook-permission-checker'
@@ -25,17 +20,17 @@ const LEGACY_EMOJI_PATH = '/emoji.html'
 const TOOL_PAGE_CONTAINER_CLASS = 'mx-auto w-full max-w-[1120px]'
 
 const toolItems: Array<{
-  id: ToolView
+  id: WebsiteView
   label: string
 }> = [
   { id: 'totp', label: '2FA 工具' },
   { id: 'facebook', label: 'Facebook ID 查询' },
   { id: 'font-changer', label: '花体英文转换器' },
-  { id: 'case-converter', label: '英文字母大小写转换' },
+  { id: 'case-converter', label: '英文大小写转换' },
   { id: 'emoji', label: 'Emoji 表情大全' },
 ]
 
-function getViewFromPath(pathname: string): ToolView {
+function getViewFromPath(pathname: string): WebsiteView {
   if (pathname.startsWith(EMOJI_PATH) || pathname.startsWith(LEGACY_EMOJI_PATH)) {
     return 'emoji'
   }
@@ -65,7 +60,7 @@ function getViewFromPath(pathname: string): ToolView {
   return 'totp'
 }
 
-function getPathFromView(view: ToolView) {
+function getPathFromView(view: WebsiteView) {
   switch (view) {
     case 'emoji':
       return EMOJI_PATH
@@ -81,10 +76,9 @@ function getPathFromView(view: ToolView) {
   }
 }
 
-export default function App() {
-  const isWebsite = typeof window === 'undefined' ? true : !isPopupPath(window.location.pathname)
-  const [activeView, setActiveView] = useState<ToolView>(() => {
-    if (typeof window === 'undefined' || !isWebsite) {
+function WebsiteApp() {
+  const [activeView, setActiveView] = useState<WebsiteView>(() => {
+    if (typeof window === 'undefined') {
       return 'totp'
     }
 
@@ -94,10 +88,6 @@ export default function App() {
   const mobileMenuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!isWebsite) {
-      return
-    }
-
     const handlePopState = () => {
       setActiveView(getViewFromPath(window.location.pathname))
       setIsMobileMenuOpen(false)
@@ -105,10 +95,10 @@ export default function App() {
 
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
-  }, [isWebsite])
+  }, [])
 
   useEffect(() => {
-    if (!isWebsite || !isMobileMenuOpen) {
+    if (!isMobileMenuOpen) {
       return
     }
 
@@ -133,15 +123,11 @@ export default function App() {
       document.removeEventListener('touchstart', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isMobileMenuOpen, isWebsite])
+  }, [isMobileMenuOpen])
 
-  const handleSelectView = (view: ToolView) => {
+  const handleSelectView = (view: WebsiteView) => {
     setActiveView(view)
     setIsMobileMenuOpen(false)
-
-    if (!isWebsite) {
-      return
-    }
 
     const nextPath = getPathFromView(view)
     if (window.location.pathname !== nextPath) {
@@ -149,22 +135,16 @@ export default function App() {
     }
   }
 
-  if (!isWebsite) {
-    return <ExtensionPopupPage />
-  }
-
   return (
     <div className="relative min-h-screen overflow-x-clip px-3 py-4 sm:px-4 sm:py-6">
-      {isWebsite ? (
-        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-          <div className="absolute -top-10 left-1/2 h-32 w-[68%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.34)_0%,rgba(206,237,255,0.12)_36%,rgba(255,255,255,0)_70%)] blur-3xl sm:-top-16 sm:h-40 sm:w-[62%]" />
-          <div className="absolute top-[82px] left-1/2 h-40 w-[54%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.34)_0%,rgba(206,237,255,0.14)_32%,rgba(255,255,255,0)_72%)] blur-3xl sm:top-[96px] sm:h-52 sm:w-[50%]" />
-          <div className="absolute left-[14%] top-[246px] hidden h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.12)_0%,rgba(206,237,255,0)_72%)] blur-3xl lg:block" />
-          <div className="absolute right-[11%] top-[204px] hidden h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.14)_0%,rgba(206,237,255,0)_74%)] blur-3xl lg:block" />
-        </div>
-      ) : null}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-10 left-1/2 h-32 w-[68%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.34)_0%,rgba(206,237,255,0.12)_36%,rgba(255,255,255,0)_70%)] blur-3xl sm:-top-16 sm:h-40 sm:w-[62%]" />
+        <div className="absolute left-[14%] top-[246px] hidden h-28 w-28 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.12)_0%,rgba(206,237,255,0)_72%)] blur-3xl lg:block" />
+        <div className="absolute right-[11%] top-[204px] hidden h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.14)_0%,rgba(206,237,255,0)_74%)] blur-3xl lg:block" />
+        <div className="absolute top-[82px] left-1/2 h-40 w-[54%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(206,237,255,0.34)_0%,rgba(206,237,255,0.14)_32%,rgba(255,255,255,0)_72%)] blur-3xl sm:top-[96px] sm:h-52 sm:w-[50%]" />
+      </div>
 
-      {isWebsite ? <DesktopPet /> : null}
+      <DesktopPet />
 
       <div className="relative z-10 mx-auto w-full max-w-[1160px]">
         <header className="sticky top-3 z-20 mb-4 sm:mb-6">
@@ -182,55 +162,51 @@ export default function App() {
                 <img src="/logo.svg" alt="2FA.CX" className="block h-auto max-h-12 w-auto shrink-0" />
               </button>
 
-              {isWebsite ? (
-                <>
-                  <div className="sm:hidden">
-                    <button
-                      type="button"
-                      onClick={() => setIsMobileMenuOpen(open => !open)}
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40"
-                      aria-expanded={isMobileMenuOpen}
-                      aria-haspopup="menu"
-                      aria-label="Open navigation menu"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-5 w-5">
-                        <path
-                          d={isMobileMenuOpen ? 'M6 8L18 8M6 16L18 16' : 'M4 7H20M4 12H20M4 17H20'}
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+              <div className="sm:hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(open => !open)}
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition-colors hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/40"
+                  aria-expanded={isMobileMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label="Open navigation menu"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-5 w-5">
+                    <path
+                      d={isMobileMenuOpen ? 'M6 8L18 8M6 16L18 16' : 'M4 7H20M4 12H20M4 17H20'}
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
 
-                  <nav className="hidden min-w-0 sm:block">
-                    <div className="flex items-center justify-end gap-2 pl-2">
-                      {toolItems.map(item => {
-                        const selected = activeView === item.id
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => handleSelectView(item.id)}
-                            className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                              selected
-                                ? 'border-brand-600 bg-brand-600 text-white'
-                                : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
-                            }`}
-                          >
-                            {item.label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </nav>
-                </>
-              ) : null}
+              <nav className="hidden min-w-0 sm:block">
+                <div className="flex items-center justify-end gap-2 pl-2">
+                  {toolItems.map(item => {
+                    const selected = activeView === item.id
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleSelectView(item.id)}
+                        className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                          selected
+                            ? 'border-brand-600 bg-brand-600 text-white'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </nav>
             </div>
 
-            {isWebsite && isMobileMenuOpen ? (
+            {isMobileMenuOpen ? (
               <div className="border-t border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95)_0%,rgba(255,255,255,1)_100%)] px-3 py-3 sm:hidden">
                 <nav className="grid grid-cols-1 gap-2" aria-label="Mobile navigation menu">
                   {toolItems.map(item => {
@@ -257,46 +233,48 @@ export default function App() {
         </header>
 
         <main className={TOOL_PAGE_CONTAINER_CLASS}>
-          {activeView === 'totp' ? <TwoFactorPage isWebsite={isWebsite} isActive={activeView === 'totp'} /> : null}
+          {activeView === 'totp' ? <TwoFactorPage isWebsite isActive={activeView === 'totp'} /> : null}
           {activeView === 'facebook' ? (
-            <FacebookIdQueryPage isWebsite={isWebsite} isActive={activeView === 'facebook'} />
+            <FacebookIdQueryPage isWebsite isActive={activeView === 'facebook'} />
           ) : null}
           {activeView === 'font-changer' ? (
-            <FontChangerPage isWebsite={isWebsite} isActive={activeView === 'font-changer'} />
+            <FontChangerPage isWebsite isActive={activeView === 'font-changer'} />
           ) : null}
           {activeView === 'case-converter' ? (
-            <CaseConverterPage isWebsite={isWebsite} isActive={activeView === 'case-converter'} />
+            <CaseConverterPage isWebsite isActive={activeView === 'case-converter'} />
           ) : null}
-          {activeView === 'emoji' ? <EmojiPage isWebsite={isWebsite} isActive={activeView === 'emoji'} /> : null}
+          {activeView === 'emoji' ? <EmojiPage isWebsite isActive={activeView === 'emoji'} /> : null}
         </main>
 
-        {isWebsite ? (
-          <footer className="mx-auto mt-6 w-full max-w-[1120px] rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-center shadow-[0_18px_56px_rgba(15,23,42,0.08)] sm:px-6 sm:py-5">
-            <p className="flex flex-wrap items-center justify-center gap-x-2 text-sm leading-7 text-slate-600">
-              <span>版权归</span>
-              <a
-                href="https://doingfb.com"
-                target="_blank"
-                rel="noreferrer"
-                className="font-semibold text-brand-700 underline decoration-dotted underline-offset-2"
-              >
-                doingfb
-              </a>
-              <span>所有</span>
-              <span className="text-slate-400">|</span>
-              <span className="text-slate-500">联系方式：</span>
-              <a
-                href="https://doingfb.com/d/28"
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-700 underline decoration-dotted underline-offset-2"
-              >
-                https://doingfb.com/d/28
-              </a>
-            </p>
-          </footer>
-        ) : null}
+        <footer className="mx-auto mt-6 w-full max-w-[1120px] rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-center shadow-[0_18px_56px_rgba(15,23,42,0.08)] sm:px-6 sm:py-5">
+          <p className="flex flex-wrap items-center justify-center gap-x-2 text-sm leading-7 text-slate-600">
+            <span>版权归</span>
+            <a
+              href="https://doingfb.com"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-brand-700 underline decoration-dotted underline-offset-2"
+            >
+              doingfb
+            </a>
+            <span>所有</span>
+            <span className="text-slate-400">|</span>
+            <span className="text-slate-500">联系方式：</span>
+            <a
+              href="https://doingfb.com/d/28"
+              target="_blank"
+              rel="noreferrer"
+              className="text-brand-700 underline decoration-dotted underline-offset-2"
+            >
+              https://doingfb.com/d/28
+            </a>
+          </p>
+        </footer>
       </div>
     </div>
   )
+}
+
+export default function App() {
+  return <WebsiteApp />
 }

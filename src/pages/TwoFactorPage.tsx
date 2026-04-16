@@ -12,9 +12,9 @@ import { isValidBase32 } from '@/utils/base32'
 const SITE_URL = 'https://2fa.cx'
 const DEMO_KEY = 'TWOLF3KHBHLTFIX4HS26TR2FKEGOWT73'
 const DEMO_SHARE_URL = `${SITE_URL}/2fa/${DEMO_KEY}`
-const BASE_TITLE = '2FA.CX - 在线 TOTP / 2FA 验证码生成器'
+const BASE_TITLE = '2FA.CX - \u5728\u7ebf TOTP / 2FA \u9a8c\u8bc1\u7801\u751f\u6210\u5668'
 const BASE_DESCRIPTION =
-  '2FA.CX 是一个本地生成 TOTP / 2FA 验证码的在线工具，支持 Base32 密钥输入、验证码复制和分享链接生成。'
+  '2FA.CX \u662f\u4e00\u4e2a\u672c\u5730\u751f\u6210 TOTP / 2FA \u9a8c\u8bc1\u7801\u7684\u5728\u7ebf\u5de5\u5177\uff0c\u652f\u6301 Base32 \u5bc6\u94a5\u8f93\u5165\u3001\u9a8c\u8bc1\u7801\u590d\u5236\u548c\u5206\u4eab\u94fe\u63a5\u751f\u6210\u3002'
 
 function buildShareUrl(secret: string) {
   return `${SITE_URL}/2fa/${secret}`
@@ -152,10 +152,10 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
 
     const validSecret = !!secret && isValidBase32(secret)
     const pageTitle = validSecret
-      ? `2FA.CX - ${maskSecret(secret)} 的在线 TOTP / 2FA 验证码`
+      ? `2FA.CX - ${maskSecret(secret)} \u7684\u5728\u7ebf TOTP / 2FA \u9a8c\u8bc1\u7801`
       : BASE_TITLE
     const pageDescription = validSecret
-      ? `当前页面已载入 Base32 密钥 ${maskSecret(secret)}，可直接查看 6 位 TOTP / 2FA 验证码并复制分享。`
+      ? `\u5f53\u524d\u9875\u9762\u5df2\u52a0\u8f7d Base32 \u5bc6\u94a5 ${maskSecret(secret)}\uff0c\u53ef\u76f4\u63a5\u67e5\u770b 6 \u4f4d TOTP / 2FA \u9a8c\u8bc1\u7801\u5e76\u590d\u5236\u5206\u4eab\u3002`
       : BASE_DESCRIPTION
 
     document.title = pageTitle
@@ -241,7 +241,7 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
                 onClick={() => setSecret(DEMO_KEY)}
                 className="text-xs font-semibold text-brand-600 underline decoration-dotted underline-offset-2 transition-colors hover:text-slate-700"
               >
-                使用演示密钥
+                {'\u4f7f\u7528\u6f14\u793a\u5bc6\u94a5'}
               </button>
             </div>
           </div>
@@ -281,7 +281,9 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
               <polyline points="9 12 11 14 15 10" />
             </svg>
             <p className="text-xs font-medium leading-relaxed text-slate-600">
-              验证码每 30 秒自动更新。密钥仅用于当前页面计算，最近使用记录只保留在当前标签页会话中，不会写入本地持久存储。
+              {
+                '\u9a8c\u8bc1\u7801\u6bcf 30 \u79d2\u81ea\u52a8\u66f4\u65b0\u3002\u5bc6\u94a5\u4ec5\u7528\u4e8e\u5f53\u524d\u9875\u9762\u8ba1\u7b97\uff0c\u6700\u8fd1\u4f7f\u7528\u8bb0\u5f55\u53ea\u4fdd\u7559\u5728\u5f53\u524d\u6807\u7b7e\u9875\u4f1a\u8bdd\u4e2d\uff0c\u4e0d\u4f1a\u5199\u5165\u672c\u5730\u6301\u4e45\u5b58\u50a8\u3002'
+              }
             </p>
           </div>
         </div>
@@ -290,10 +292,10 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
       {isWebsite && (
         <>
           <section className="overflow-hidden rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_18px_56px_rgba(15,23,42,0.1)] sm:rounded-[24px] sm:px-6 sm:py-5">
-            <h2 className="text-sm font-semibold text-slate-900">2FA 工具说明</h2>
+            <h2 className="text-sm font-semibold text-slate-900">{'2FA \u5de5\u5177\u8bf4\u660e'}</h2>
             <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700">
               <p>
-                演示密钥：
+                {'\u6f14\u793a\u5bc6\u94a5\uff1a'}
                 <button
                   type="button"
                   onClick={handleCopyDemoKey}
@@ -302,17 +304,21 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
                   {DEMO_KEY}
                 </button>
                 <span className="ml-2 text-xs text-slate-500">
-                  {demoClipboard.copied ? '已复制' : '点击密钥可复制'}
+                  {demoClipboard.copied
+                    ? '\u5df2\u590d\u5236'
+                    : '\u70b9\u51fb\u5bc6\u94a5\u53ef\u590d\u5236'}
                 </span>
               </p>
 
               <p>
-                新手提示：请在倒计时结束前输入验证码，否则当前 6 位验证码会失效。测试时必须输入正确编码的 Base32 密钥，不要随意输入一串字符来测试。
+                {
+                  '\u65b0\u624b\u63d0\u793a\uff1a\u8bf7\u5728\u5012\u8ba1\u65f6\u7ed3\u675f\u524d\u8f93\u5165\u9a8c\u8bc1\u7801\uff0c\u5426\u5219\u5f53\u524d 6 \u4f4d\u9a8c\u8bc1\u7801\u4f1a\u5931\u6548\u3002\u6d4b\u8bd5\u65f6\u8bf7\u8f93\u5165\u6b63\u786e\u7f16\u7801\u7684 Base32 \u5bc6\u94a5\uff0c\u4e0d\u8981\u968f\u610f\u8f93\u5165\u4e00\u4e32\u5b57\u7b26\u6765\u6d4b\u8bd5\u3002'
+                }
               </p>
 
               <div className="space-y-2">
                 <p>
-                  你也可以把密钥直接加到网址后面使用：
+                  {'\u4f60\u4e5f\u53ef\u4ee5\u628a\u5bc6\u94a5\u76f4\u63a5\u52a0\u5230\u7f51\u5740\u540e\u9762\u4f7f\u7528\uff1a'}
                   <a
                     href={`${SITE_URL}/2fa/`}
                     target="_blank"
@@ -321,7 +327,7 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
                   >
                     https://2fa.cx/2fa/
                   </a>
-                  示例链接如下：
+                  {'\u793a\u4f8b\u94fe\u63a5\u5982\u4e0b\uff1a'}
                 </p>
 
                 <a
@@ -339,10 +345,12 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
                     onClick={handleCopyDemoShareUrl}
                     className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                   >
-                    {shareUrlClipboard.copied ? '链接已复制' : '点击复制链接'}
+                    {shareUrlClipboard.copied
+                      ? '\u94fe\u63a5\u5df2\u590d\u5236'
+                      : '\u70b9\u51fb\u590d\u5236\u94fe\u63a5'}
                   </button>
                   <span className="break-all text-xs text-slate-500">
-                    复制内容为：{DEMO_SHARE_URL}
+                    {`\u590d\u5236\u5185\u5bb9\u4e3a\uff1a${DEMO_SHARE_URL}`}
                   </span>
                 </div>
               </div>
@@ -350,36 +358,46 @@ export function TwoFactorPage({ isWebsite, isActive }: TwoFactorPageProps) {
           </section>
 
           <section className="overflow-hidden rounded-[22px] border border-slate-200 bg-white px-4 py-4 shadow-[0_18px_56px_rgba(15,23,42,0.1)] sm:rounded-[24px] sm:px-6 sm:py-5">
-            <h2 className="text-base font-semibold text-slate-900">在线 TOTP / 2FA 验证码生成器</h2>
+            <h2 className="text-base font-semibold text-slate-900">
+              {'\u5728\u7ebf TOTP / 2FA \u9a8c\u8bc1\u7801\u751f\u6210\u5668'}
+            </h2>
             <div className="mt-3 space-y-4 text-sm leading-7 text-slate-700">
               <p>
-                2FA.CX 面向网页登录、后台管理和账号安全场景。输入 Base32 密钥后，页面会立刻在本地生成 6 位动态验证码，适合 Google Authenticator、双重验证和常见 OTP 登录流程。
+                {
+                  '2FA.CX \u9762\u5411\u7f51\u9875\u767b\u5f55\u3001\u540e\u53f0\u7ba1\u7406\u548c\u8d26\u53f7\u5b89\u5168\u573a\u666f\u3002\u8f93\u5165 Base32 \u5bc6\u94a5\u540e\uff0c\u9875\u9762\u4f1a\u7acb\u5373\u5728\u672c\u5730\u751f\u6210 6 \u4f4d\u52a8\u6001\u9a8c\u8bc1\u7801\uff0c\u9002\u5408 Google Authenticator\u3001\u53cc\u91cd\u9a8c\u8bc1\u548c\u5e38\u89c1 OTP \u767b\u5f55\u6d41\u7a0b\u3002'
+                }
               </p>
 
               <p>
-                与把密钥发送到服务端的工具不同，这个页面会在当前浏览器里完成计算。对于需要快速查看 TOTP、临时分享验证码链接或给新手演示 Base32 用法的场景，这种方式更直接。
+                {
+                  '\u4e0e\u628a\u5bc6\u94a5\u53d1\u9001\u5230\u670d\u52a1\u7aef\u7684\u5de5\u5177\u4e0d\u540c\uff0c\u8fd9\u4e2a\u9875\u9762\u4f1a\u5728\u5f53\u524d\u6d4f\u89c8\u5668\u91cc\u5b8c\u6210\u8ba1\u7b97\u3002\u5bf9\u4e8e\u9700\u8981\u5feb\u901f\u67e5\u770b TOTP\u3001\u4e34\u65f6\u5206\u4eab\u9a8c\u8bc1\u7801\u94fe\u63a5\u6216\u7ed9\u65b0\u624b\u6f14\u793a Base32 \u7528\u6cd5\u7684\u573a\u666f\uff0c\u8fd9\u79cd\u65b9\u5f0f\u66f4\u76f4\u63a5\u3002'
+                }
               </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <article className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-slate-900">支持场景</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">{'\u652f\u6301\u573a\u666f'}</h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Base32 密钥生成验证码、在线 2FA 查询、TOTP 动态口令查看、验证码复制和分享链接生成。
+                    {
+                      'Base32 \u5bc6\u94a5\u751f\u6210\u9a8c\u8bc1\u7801\u3001\u5728\u7ebf 2FA \u67e5\u8be2\u3001TOTP \u52a8\u6001\u53e3\u4ee4\u67e5\u770b\u3001\u9a8c\u8bc1\u7801\u590d\u5236\u548c\u5206\u4eab\u94fe\u63a5\u751f\u6210\u3002'
+                    }
                   </p>
                 </article>
 
                 <article className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-slate-900">适合搜索的关键词</h3>
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    {'\u9002\u5408\u641c\u7d22\u7684\u5173\u952e\u8bcd'}
+                  </h3>
                   <p className="mt-1 text-sm leading-6 text-slate-600">
-                    TOTP、2FA、OTP、Google Authenticator、双重验证、两步验证、Base32、在线验证码生成器。
+                    {'TOTP\u30012FA\u3001OTP\u3001Google Authenticator\u3001\u53cc\u91cd\u9a8c\u8bc1\u3001\u4e24\u6b65\u9a8c\u8bc1\u3001Base32\u3001\u5728\u7ebf\u9a8c\u8bc1\u7801\u751f\u6210\u5668\u3002'}
                   </p>
                 </article>
               </div>
 
               <p>
-                如果你需要把一组密钥做成可直接访问的链接，也可以使用
-                <span className="mx-1 font-mono text-slate-900">https://2fa.cx/2fa/密钥</span>
-                这种格式。页面会自动读取路径中的 Base32 密钥并生成验证码。
+                {'\u5982\u679c\u4f60\u9700\u8981\u628a\u4e00\u7ec4\u5bc6\u94a5\u505a\u6210\u53ef\u76f4\u63a5\u8bbf\u95ee\u7684\u94fe\u63a5\uff0c\u4e5f\u53ef\u4ee5\u4f7f\u7528'}
+                <span className="mx-1 font-mono text-slate-900">https://2fa.cx/2fa/{'\u5bc6\u94a5'}</span>
+                {'\u8fd9\u79cd\u683c\u5f0f\u3002\u9875\u9762\u4f1a\u81ea\u52a8\u8bfb\u53d6\u8def\u5f84\u4e2d\u7684 Base32 \u5bc6\u94a5\u5e76\u751f\u6210\u9a8c\u8bc1\u7801\u3002'}
               </p>
             </div>
           </section>

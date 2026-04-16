@@ -18,7 +18,7 @@ export function useTOTP(secret: string) {
 
     if (!isValidBase32(value)) {
       setCode('')
-      setError('格式错误：仅支持 A-Z 和 2-7，且长度至少为 8 位。')
+      setError('\u683c\u5f0f\u9519\u8bef\uff1a\u4ec5\u652f\u6301 A-Z \u548c 2-7\uff0c\u4e14\u957f\u5ea6\u81f3\u5c11\u4e3a 8 \u4f4d\u3002')
       return
     }
 
@@ -30,7 +30,7 @@ export function useTOTP(secret: string) {
       lastPeriodRef.current = Math.floor(Date.now() / 1000 / 30)
     } catch {
       setCode('')
-      setError('密钥无效，请检查输入内容。')
+      setError('\u5bc6\u94a5\u65e0\u6548\uff0c\u8bf7\u68c0\u67e5\u8f93\u5165\u5185\u5bb9\u3002')
     }
   }, [])
 

@@ -34,38 +34,56 @@ export function HistoryPanel({ history, onSelect, onClear }: Props) {
         aria-expanded={open}
       >
         <span className="flex items-center gap-2">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </svg>
-          最近使用
+          {'\u6700\u8fd1\u4f7f\u7528'}
           {history.length > 0 && (
             <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-slate-600">
               {history.length}
             </span>
           )}
         </span>
-        <span className={`text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>▼</span>
+        <span className={`text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+          {'\u25be'}
+        </span>
       </button>
 
       {open && (
         <div className="px-4 pb-4 sm:px-6">
           {history.length === 0 ? (
-            <p className="py-2 text-xs font-medium text-slate-500">当前会话还没有记录</p>
+            <p className="py-2 text-xs font-medium text-slate-500">
+              {'\u5f53\u524d\u4f1a\u8bdd\u8fd8\u6ca1\u6709\u8bb0\u5f55'}
+            </p>
           ) : (
             <>
               <ul className="divide-y divide-slate-100">
                 {history.map((entry, index) => (
-                  <li key={index} className="flex flex-col items-start justify-between gap-2 py-2 sm:flex-row sm:items-center">
+                  <li
+                    key={index}
+                    className="flex flex-col items-start justify-between gap-2 py-2 sm:flex-row sm:items-center"
+                  >
                     <div>
                       <p className="font-mono text-xs font-semibold text-slate-700">{maskKey(entry.key)}</p>
-                      <p className="text-xs font-medium text-slate-500">{new Date(entry.time).toLocaleString('zh-CN')}</p>
+                      <p className="text-xs font-medium text-slate-500">
+                        {new Date(entry.time).toLocaleString('zh-CN')}
+                      </p>
                     </div>
                     <button
                       onClick={() => onSelect(entry.key)}
                       className="rounded border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
                     >
-                      填入
+                      {'\u586b\u5165'}
                     </button>
                   </li>
                 ))}
@@ -74,7 +92,9 @@ export function HistoryPanel({ history, onSelect, onClear }: Props) {
                 onClick={handleClear}
                 className="mt-2 text-xs font-semibold text-red-500 transition-colors hover:text-red-700"
               >
-                {confirmClear ? '再次点击确认清空' : '清空记录'}
+                {confirmClear
+                  ? '\u518d\u6b21\u70b9\u51fb\u786e\u8ba4\u6e05\u7a7a'
+                  : '\u6e05\u7a7a\u8bb0\u5f55'}
               </button>
             </>
           )}

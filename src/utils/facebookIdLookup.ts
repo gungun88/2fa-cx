@@ -1,375 +1,250 @@
-export type FacebookLookupType = 'account' | 'page' | 'group' | 'adPost'
+import type { FacebookIdKind, FacebookIdMatch } from '@/utils/facebook'
+
+export type FacebookLookupType = 'profile' | 'page' | 'group' | 'post' | 'reel' | 'watch' | 'generic'
 
 export interface FacebookIdLookupPart {
   label: string
   value: string
+  highlight?: boolean
 }
 
 export interface FacebookIdLookupResult {
-  matched: boolean
-  type: FacebookLookupType
-  title: string
-  value?: string
-  confidence?: 'high' | 'medium' | 'low'
-  sourceLabel?: string
-  description: string
+  input: string
+  normalizedInput: string
+  lookupType: FacebookLookupType
   parts: FacebookIdLookupPart[]
-  tips: string[]
+  matches: FacebookIdMatch[]
+  note?: string
 }
 
-export const facebookLookupTypeMeta: Array<{
-  id: FacebookLookupType
-  label: string
-  description: string
-  example: string
-}> = [
+const NUMERIC_ID_RE = /^\d{5,}$/
+
+export const facebookLookupTypeMeta: Record<
+  FacebookLookupType,
   {
-    id: 'account',
-    label: '账号 ID',
-    description: '提取 Facebook 个人账号的数字 ID。',
-    example: 'https://www.facebook.com/profile.php?id=100089112233445',
+    label: string
+    description: string
+  }
+> = {
+  profile: {
+    label: '\u4e2a\u4eba\u4e3b\u9875',
+    description: '\u901a\u5e38\u51fa\u73b0\u4e8e `profile.php?id=...` \u6216 `/people/.../{id}` \u8fd9\u7c7b\u4e2a\u4eba\u94fe\u63a5\u3002',
   },
-  {
-    id: 'page',
-    label: '主页 ID',
-    description: '提取 Facebook Page 的数字 ID。',
-    example: 'https://www.facebook.com/profile.php?id=61558877665544',
+  page: {
+    label: '\u4e13\u9875',
+    description: '\u901a\u5e38\u51fa\u73b0\u4e8e `/pages/.../{id}` \u6216\u5e26\u6709 `page_id` \u53c2\u6570\u7684\u94fe\u63a5\u3002',
   },
-  {
-    id: 'group',
-    label: '群组 ID',
-    description: '提取 Facebook Group 的数字 ID。',
-    example: 'https://www.facebook.com/groups/123456789012345',
+  group: {
+    label: '\u5c0f\u7ec4',
+    description: '\u901a\u5e38\u51fa\u73b0\u4e8e `/groups/{id}` \u6216 `group_id` \u53c2\u6570\u4e2d\u3002',
   },
-  {
-    id: 'adPost',
-    label: '广告帖 ID',
-    description: '提取广告帖 object_story_id，或组合 page_id + post_id。',
-    example:
-      'https://www.facebook.com/permalink.php?story_fbid=123456789012345&id=109876543210987',
+  post: {
+    label: '\u5e16\u5b50',
+    description: '\u5305\u62ec `story_fbid` `fbid` `post_id` \u7b49\u5e16\u5b50\u6216\u5e7f\u544a\u7d20\u6750 ID\u3002',
   },
-]
-
-function unique(values: string[]) {
-  return Array.from(new Set(values.filter(Boolean)))
+  reel: {
+    label: 'Reel',
+    description: '\u51fa\u73b0\u4e8e `/reel/{id}` \u8def\u5f84\u4e2d\u7684\u77ed\u89c6\u9891 ID\u3002',
+  },
+  watch: {
+    label: 'Watch',
+    description: '\u51fa\u73b0\u4e8e `/watch/{id}` \u8def\u5f84\u4e2d\u7684\u89c6\u9891 ID\u3002',
+  },
+  generic: {
+    label: '\u901a\u7528',
+    description: '\u65e0\u6cd5\u51c6\u786e\u5224\u65ad\u7c7b\u578b\u65f6\uff0c\u4ecd\u4f1a\u5c1d\u8bd5\u63d0\u53d6\u53ef\u80fd\u7684\u6570\u5b57 ID\u3002',
+  },
 }
 
-function firstMatch(input: string, pattern: RegExp) {
-  const match = input.match(pattern)
-  return match?.[1] ?? ''
+function normalizeInput(input: string) {
+  const trimmed = String(input ?? '').trim()
+  if (!trimmed) {
+    return ''
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed
+  }
+
+  if (/^(www\.|m\.|mbasic\.)?facebook\.com\//i.test(trimmed)) {
+    return `https://${trimmed}`
+  }
+
+  return trimmed
 }
 
-function getQueryValue(input: string, name: string) {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const match = input.match(new RegExp(`[?&#]${escaped}=([^&#]+)`, 'i'))
-  return match?.[1] ? decodeURIComponent(match[1]) : ''
-}
+function buildMatch(kind: FacebookIdKind, id: string, source: string, hint?: string): FacebookIdMatch {
+  const labels: Record<FacebookIdKind, string> = {
+    account: 'Facebook \u8d26\u53f7 ID',
+    page: 'Facebook \u4e13\u9875 ID',
+    group: 'Facebook \u5c0f\u7ec4 ID',
+    adPost: 'Facebook \u5e16\u5b50 ID',
+    generic: 'Facebook \u6570\u5b57 ID',
+  }
 
-function getRawNumericIds(input: string) {
-  return unique(input.match(/\b\d{5,20}\b/g) ?? [])
-}
-
-function buildFallbackResult(type: FacebookLookupType): FacebookIdLookupResult {
   return {
-    matched: false,
-    type,
-    title: '未识别到可用 ID',
-    description: '当前内容里没有解析出可直接使用的数字 ID。',
-    parts: [],
-    tips: [
-      '尽量粘贴带参数的原始 Facebook 链接，例如 profile.php?id=... 或 groups/...。',
-      '如果是用户名链接或新版 pfbid 链接，仅靠前端本地解析通常拿不到数字 ID。',
-      '广告帖建议优先使用 object_story_id、permalink.php，或 pageId_postId 这种格式。',
-    ],
+    kind,
+    label: labels[kind],
+    id,
+    source,
+    hint,
+    confidence: 'high',
   }
 }
 
-function buildSuccessResult(
-  type: FacebookLookupType,
-  title: string,
-  value: string,
-  description: string,
-  sourceLabel: string,
-  confidence: 'high' | 'medium' | 'low',
-  parts: FacebookIdLookupPart[] = [],
-  tips: string[] = []
-): FacebookIdLookupResult {
-  return {
-    matched: true,
-    type,
-    title,
-    value,
-    confidence,
-    sourceLabel,
-    description,
-    parts,
-    tips,
+function addPart(parts: FacebookIdLookupPart[], label: string, value: string, highlight = false) {
+  if (!value) {
+    return
   }
+
+  parts.push({ label, value, highlight })
 }
 
-function lookupAccountId(input: string) {
-  const profileId = firstMatch(input, /profile\.php[^#]*[?&]id=(\d{5,20})/i)
-  if (profileId) {
-    return buildSuccessResult(
-      'account',
-      'Facebook 账号 ID',
-      profileId,
-      '已从 profile.php?id 参数中提取账号 ID。',
-      'profile.php?id',
-      'high'
-    )
+function detectLookupType(url: URL): FacebookLookupType {
+  const [first, second] = url.pathname.split('/').filter(Boolean)
+
+  if (first === 'profile.php' || first === 'people') {
+    return 'profile'
   }
 
-  const peopleId = firstMatch(input, /\/people\/[^/?#]+\/(\d{5,20})/i)
-  if (peopleId) {
-    return buildSuccessResult(
-      'account',
-      'Facebook 账号 ID',
-      peopleId,
-      '已从 /people/.../{id} 路径中提取账号 ID。',
-      '/people/.../{id}',
-      'high'
-    )
+  if (first === 'pages') {
+    return 'page'
   }
 
-  const entityId = firstMatch(input, /entity_id=(\d{5,20})/i)
-  if (entityId) {
-    return buildSuccessResult(
-      'account',
-      'Facebook 账号 ID',
-      entityId,
-      '已从 entity_id 参数中提取账号 ID。',
-      'entity_id',
-      'medium'
-    )
+  if (first === 'groups') {
+    return 'group'
   }
 
-  const rawIds = getRawNumericIds(input)
-  if (rawIds.length > 0) {
-    return buildSuccessResult(
-      'account',
-      '疑似 Facebook 账号 ID',
-      rawIds[0],
-      '当前内容里存在数字 ID，但缺少足够的路径信息来确认它一定是账号 ID。',
-      'raw numeric id',
-      'low',
-      [],
-      ['如果你需要高置信度结果，优先粘贴 profile.php?id=... 或 /people/... 链接。']
-    )
+  if (first === 'reel') {
+    return 'reel'
   }
 
-  return buildFallbackResult('account')
+  if (first === 'watch') {
+    return 'watch'
+  }
+
+  if (second === 'posts' || second === 'videos') {
+    return 'post'
+  }
+
+  if (url.searchParams.has('story_fbid') || url.searchParams.has('fbid') || url.searchParams.has('post_id')) {
+    return 'post'
+  }
+
+  return 'generic'
 }
 
-function lookupPageId(input: string) {
-  const pageId = firstMatch(input, /page_id=(\d{5,20})/i)
-  if (pageId) {
-    return buildSuccessResult(
-      'page',
-      'Facebook 主页 ID',
-      pageId,
-      '已从 page_id 参数中提取主页 ID。',
-      'page_id',
-      'high'
-    )
-  }
+export function lookupFacebookId(input: string): FacebookIdLookupResult {
+  const normalizedInput = normalizeInput(input)
+  const parts: FacebookIdLookupPart[] = []
+  const matches: FacebookIdMatch[] = []
 
-  const fbPageId = firstMatch(input, /fb:\/\/page\/\?id=(\d{5,20})/i)
-  if (fbPageId) {
-    return buildSuccessResult(
-      'page',
-      'Facebook 主页 ID',
-      fbPageId,
-      '已从 fb://page/?id 链接中提取主页 ID。',
-      'fb://page/?id',
-      'high'
-    )
-  }
-
-  const pagesPathId = firstMatch(input, /\/pages\/[^/?#]+\/(\d{5,20})/i)
-  if (pagesPathId) {
-    return buildSuccessResult(
-      'page',
-      'Facebook 主页 ID',
-      pagesPathId,
-      '已从 /pages/.../{id} 路径中提取主页 ID。',
-      '/pages/.../{id}',
-      'high'
-    )
-  }
-
-  const profileId = firstMatch(input, /profile\.php[^#]*[?&]id=(\d{5,20})/i)
-  if (profileId) {
-    return buildSuccessResult(
-      'page',
-      'Facebook 主页 ID',
-      profileId,
-      '已从 profile.php?id 中提取数字 ID，可作为主页 ID 使用。',
-      'profile.php?id',
-      'medium'
-    )
-  }
-
-  const rawIds = getRawNumericIds(input)
-  if (rawIds.length > 0) {
-    return buildSuccessResult(
-      'page',
-      '疑似 Facebook 主页 ID',
-      rawIds[0],
-      '当前内容里存在数字 ID，但缺少足够的路径信息来确认它一定是主页 ID。',
-      'raw numeric id',
-      'low',
-      [],
-      ['如果你需要高置信度结果，优先粘贴 page_id、profile.php?id 或 /pages/... 链接。']
-    )
-  }
-
-  return buildFallbackResult('page')
-}
-
-function lookupGroupId(input: string) {
-  const groupId = firstMatch(input, /\/groups\/(\d{5,20})/i)
-  if (groupId) {
-    return buildSuccessResult(
-      'group',
-      'Facebook 群组 ID',
-      groupId,
-      '已从 /groups/{id} 路径中提取群组 ID。',
-      '/groups/{id}',
-      'high'
-    )
-  }
-
-  const groupParam = firstMatch(input, /group_id=(\d{5,20})/i)
-  if (groupParam) {
-    return buildSuccessResult(
-      'group',
-      'Facebook 群组 ID',
-      groupParam,
-      '已从 group_id 参数中提取群组 ID。',
-      'group_id',
-      'high'
-    )
-  }
-
-  const rawIds = getRawNumericIds(input)
-  if (rawIds.length > 0) {
-    return buildSuccessResult(
-      'group',
-      '疑似 Facebook 群组 ID',
-      rawIds[0],
-      '当前内容里存在数字 ID，但缺少足够的路径信息来确认它一定是群组 ID。',
-      'raw numeric id',
-      'low',
-      [],
-      ['如果你需要高置信度结果，优先粘贴 /groups/{id} 链接。']
-    )
-  }
-
-  return buildFallbackResult('group')
-}
-
-function lookupAdPostId(input: string) {
-  const directComposite = firstMatch(input, /\b(\d{5,20}_\d{5,20})\b/)
-  if (directComposite) {
-    const [pageId, postId] = directComposite.split('_')
-    return buildSuccessResult(
-      'adPost',
-      'Facebook 广告帖 ID',
-      directComposite,
-      '已直接识别到 object_story_id 格式的广告帖 ID。',
-      'pageId_postId',
-      'high',
-      [
-        { label: 'Page ID', value: pageId },
-        { label: 'Post ID', value: postId },
-      ]
-    )
-  }
-
-  const objectStoryId = getQueryValue(input, 'object_story_id')
-  if (objectStoryId && /^\d{5,20}_\d{5,20}$/.test(objectStoryId)) {
-    const [pageId, postId] = objectStoryId.split('_')
-    return buildSuccessResult(
-      'adPost',
-      'Facebook 广告帖 ID',
-      objectStoryId,
-      '已从 object_story_id 参数中提取广告帖 ID。',
-      'object_story_id',
-      'high',
-      [
-        { label: 'Page ID', value: pageId },
-        { label: 'Post ID', value: postId },
-      ]
-    )
-  }
-
-  const storyFbid = getQueryValue(input, 'story_fbid')
-  const pageId = getQueryValue(input, 'id') || getQueryValue(input, 'page_id')
-  if (storyFbid && pageId && /^\d{5,20}$/.test(storyFbid) && /^\d{5,20}$/.test(pageId)) {
-    const combined = `${pageId}_${storyFbid}`
-    return buildSuccessResult(
-      'adPost',
-      'Facebook 广告帖 ID',
-      combined,
-      '已用 page_id 和 story_fbid 组合出广告帖 ID。',
-      'story_fbid + id',
-      'high',
-      [
-        { label: 'Page ID', value: pageId },
-        { label: 'Post ID', value: storyFbid },
-      ]
-    )
-  }
-
-  const postId = firstMatch(input, /\/posts\/(\d{5,20})/i) || getQueryValue(input, 'story_fbid')
-  if (postId && /^\d{5,20}$/.test(postId)) {
-    return buildSuccessResult(
-      'adPost',
-      '帖子 ID（部分结果）',
-      postId,
-      '已识别出帖子 ID，但缺少主页 ID，暂时无法组合成完整广告帖 ID。',
-      '/posts/{id} or story_fbid',
-      'medium',
-      [{ label: 'Post ID', value: postId }],
-      ['如果你需要完整广告帖 ID，请补充 permalink.php?story_fbid=...&id=... 或 object_story_id。']
-    )
-  }
-
-  return buildFallbackResult('adPost')
-}
-
-export function lookupFacebookId(
-  input: string,
-  type: FacebookLookupType
-): FacebookIdLookupResult {
-  const normalized = input.trim()
-
-  if (!normalized) {
+  if (!normalizedInput) {
     return {
-      matched: false,
-      type,
-      title: '等待输入',
-      description: '粘贴 Facebook 链接、原始参数或数字 ID 后开始解析。',
-      parts: [],
-      tips: [
-        '账号和主页建议优先使用 profile.php?id=... 这类原始链接。',
-        '群组建议优先使用 /groups/{id} 链接。',
-        '广告帖建议优先使用 object_story_id、permalink.php 或 pageId_postId。',
-      ],
+      input,
+      normalizedInput,
+      lookupType: 'generic',
+      parts,
+      matches,
+      note: '\u8bf7\u5148\u8f93\u5165 Facebook \u94fe\u63a5\u6216\u7eaf\u6570\u5b57 ID\u3002',
     }
   }
 
-  switch (type) {
-    case 'account':
-      return lookupAccountId(normalized)
-    case 'page':
-      return lookupPageId(normalized)
-    case 'group':
-      return lookupGroupId(normalized)
-    case 'adPost':
-      return lookupAdPostId(normalized)
-    default:
-      return buildFallbackResult(type)
+  if (NUMERIC_ID_RE.test(normalizedInput)) {
+    matches.push(buildMatch('generic', normalizedInput, '\u76f4\u63a5\u8f93\u5165\u7684\u6570\u5b57 ID'))
+    addPart(parts, '\u8f93\u5165\u7c7b\u578b', '\u7eaf\u6570\u5b57 ID')
+    addPart(parts, 'ID', normalizedInput, true)
+
+    return {
+      input,
+      normalizedInput,
+      lookupType: 'generic',
+      parts,
+      matches,
+      note: '\u8fd9\u662f\u76f4\u63a5\u8f93\u5165\u7684 ID\uff0c\u672a\u7ecf\u8fc7\u94fe\u63a5\u7ed3\u6784\u5206\u6790\u3002',
+    }
+  }
+
+  try {
+    const url = new URL(normalizedInput)
+    const lookupType = detectLookupType(url)
+    const segments = url.pathname.split('/').filter(Boolean)
+
+    addPart(parts, '\u57df\u540d', url.hostname)
+    addPart(parts, '\u8def\u5f84', url.pathname || '/')
+    if (url.search) {
+      addPart(parts, '\u67e5\u8be2\u53c2\u6570', url.search)
+    }
+
+    if (url.searchParams.has('id') && NUMERIC_ID_RE.test(url.searchParams.get('id') || '')) {
+      matches.push(buildMatch('account', url.searchParams.get('id') || '', 'id \u53c2\u6570'))
+      addPart(parts, 'id', url.searchParams.get('id') || '', true)
+    }
+
+    if (url.searchParams.has('page_id') && NUMERIC_ID_RE.test(url.searchParams.get('page_id') || '')) {
+      matches.push(buildMatch('page', url.searchParams.get('page_id') || '', 'page_id \u53c2\u6570'))
+      addPart(parts, 'page_id', url.searchParams.get('page_id') || '', true)
+    }
+
+    if (url.searchParams.has('group_id') && NUMERIC_ID_RE.test(url.searchParams.get('group_id') || '')) {
+      matches.push(buildMatch('group', url.searchParams.get('group_id') || '', 'group_id \u53c2\u6570'))
+      addPart(parts, 'group_id', url.searchParams.get('group_id') || '', true)
+    }
+
+    for (const key of ['story_fbid', 'fbid', 'post_id', 'object_story_id']) {
+      const value = url.searchParams.get(key) || ''
+      if (NUMERIC_ID_RE.test(value)) {
+        matches.push(buildMatch('adPost', value, `${key} \u53c2\u6570`))
+        addPart(parts, key, value, true)
+      }
+    }
+
+    if (segments[0] === 'people' && NUMERIC_ID_RE.test(segments[2] || '')) {
+      matches.push(buildMatch('account', segments[2], '/people/.../{id}'))
+      addPart(parts, '\u5c3e\u90e8 ID', segments[2], true)
+    }
+
+    if (segments[0] === 'pages' && NUMERIC_ID_RE.test(segments[2] || '')) {
+      matches.push(buildMatch('page', segments[2], '/pages/.../{id}'))
+      addPart(parts, '\u5c3e\u90e8 ID', segments[2], true)
+    }
+
+    if (segments[0] === 'groups' && NUMERIC_ID_RE.test(segments[1] || '')) {
+      matches.push(buildMatch('group', segments[1], '/groups/{id}'))
+      addPart(parts, '\u5c0f\u7ec4 ID', segments[1], true)
+    }
+
+    if ((segments[0] === 'reel' || segments[0] === 'watch') && NUMERIC_ID_RE.test(segments[1] || '')) {
+      matches.push(buildMatch('adPost', segments[1], `/${segments[0]}/{id}`))
+      addPart(parts, `${segments[0]} ID`, segments[1], true)
+    }
+
+    if (segments[1] === 'posts' && NUMERIC_ID_RE.test(segments[2] || '')) {
+      matches.push(buildMatch('adPost', segments[2], '/{name}/posts/{id}'))
+      addPart(parts, '\u5e16\u5b50 ID', segments[2], true)
+    }
+
+    const uniqueMatches = Array.from(new Map(matches.map(match => [`${match.kind}:${match.id}`, match])).values())
+
+    return {
+      input,
+      normalizedInput,
+      lookupType,
+      parts,
+      matches: uniqueMatches,
+      note:
+        uniqueMatches.length > 0
+          ? '\u5df2\u6839\u636e\u94fe\u63a5\u7ed3\u6784\u63d0\u53d6\u51fa\u53ef\u80fd\u7684 ID\u3002'
+          : '\u8fd9\u4e2a\u94fe\u63a5\u7ed3\u6784\u6ca1\u6709\u76f4\u63a5\u663e\u793a\u6570\u5b57 ID\uff0c\u53ef\u4ee5\u518d\u8bd5\u4e00\u6b21\u670d\u52a1\u7aef\u89e3\u6790\u3002',
+    }
+  } catch {
+    return {
+      input,
+      normalizedInput,
+      lookupType: 'generic',
+      parts,
+      matches,
+      note: '\u5f53\u524d\u8f93\u5165\u4e0d\u662f\u53ef\u89e3\u6790\u7684 URL\uff0c\u53ef\u4ee5\u6539\u4e3a Facebook \u94fe\u63a5\u6216\u7eaf\u6570\u5b57 ID\u3002',
+    }
   }
 }

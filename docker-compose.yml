@@ -6,6 +6,11 @@ services:
     image: ${API_IMAGE_NAME:-2fa-cx-api:latest}
     container_name: ${API_CONTAINER_NAME:-2fa-cx-api}
     restart: unless-stopped
+    environment:
+      FACEBOOK_BROWSER_RESOLVER_ENABLED: "${FACEBOOK_BROWSER_RESOLVER_ENABLED:-true}"
+      FACEBOOK_BROWSER_EXECUTABLE_PATH: "${FACEBOOK_BROWSER_EXECUTABLE_PATH:-/usr/bin/chromium-browser}"
+      FACEBOOK_BROWSER_TIMEOUT_MS: "${FACEBOOK_BROWSER_TIMEOUT_MS:-45000}"
+      FACEBOOK_BROWSER_HEADLESS: "${FACEBOOK_BROWSER_HEADLESS:-true}"
     expose:
       - "3001"
     security_opt:

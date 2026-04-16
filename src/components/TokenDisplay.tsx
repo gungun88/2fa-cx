@@ -19,13 +19,15 @@ export function TokenDisplay({ code, onCopy }: Props) {
   }, [code])
 
   const formatted = code ? `${code.slice(0, 3)} ${code.slice(3)}` : '--- ---'
-  const ariaLabel = code ? `当前验证码 ${formatted}，点击可复制` : '当前还没有可用验证码'
+  const ariaLabel = code
+    ? `\u5f53\u524d\u9a8c\u8bc1\u7801 ${formatted}\uff0c\u70b9\u51fb\u53ef\u590d\u5236`
+    : '\u5f53\u524d\u8fd8\u6ca1\u6709\u53ef\u7528\u9a8c\u8bc1\u7801'
 
   return (
     <div
       ref={dispRef}
       onClick={onCopy}
-      title="点击复制"
+      title={'\u70b9\u51fb\u590d\u5236'}
       role="button"
       tabIndex={0}
       aria-label={ariaLabel}

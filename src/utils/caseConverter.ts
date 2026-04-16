@@ -1,209 +1,164 @@
 export interface CaseConversionResult {
   id: string
-  name: string
+  label: string
   description: string
   output: string
 }
 
-const WORD_REGEX = /[A-Za-z]+(?:['’][A-Za-z]+)*(?:-[A-Za-z]+(?:['’][A-Za-z]+)*)*/g
-const MINOR_TITLE_WORDS = new Set([
-  'a',
-  'an',
-  'and',
-  'as',
-  'at',
-  'but',
-  'by',
-  'for',
-  'from',
-  'if',
-  'in',
-  'into',
-  'nor',
-  'of',
-  'on',
-  'onto',
-  'or',
-  'over',
-  'per',
-  'so',
-  'the',
-  'to',
-  'up',
-  'upon',
-  'via',
-  'vs',
-  'yet',
-])
+const ENGLISH_WORD_RE = /[A-Za-z]+(?:['\u2019][A-Za-z]+)*(?:-[A-Za-z]+(?:['\u2019][A-Za-z]+)*)*/g
 
-function buildPreserveMap(input: string) {
-  const map = new Map<string, string>()
-
-  input
-    .split(/[\n,]+/)
-    .map(item => item.trim())
-    .filter(Boolean)
-    .forEach(item => {
-      map.set(item.toLowerCase(), item)
-    })
-
-  return map
+function splitWords(input: string) {
+  return input.match(ENGLISH_WORD_RE) || []
 }
 
 function capitalizeWord(word: string) {
   return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
 }
 
-function capitalizeHyphenatedWord(
-  word: string,
-  options?: {
-    allowMinorWords?: boolean
+function buildCompound(words: string[], joiner: string, mode: 'lower' | 'upper' | 'title') {
+  const normalized = words.map(word => word.replace(/['\u2019-]/g, ' '))
+  const flattened = normalized.flatMap(word => word.split(/\s+/).filter(Boolean))
+
+  if (mode === 'lower') {
+    return flattened.map(word => word.toLowerCase()).join(joiner)
   }
-) {
-  const allowMinorWords = options?.allowMinorWords ?? false
 
-  return word
-    .split('-')
-    .map((segment, index, segments) => {
-      const lower = segment.toLowerCase()
-      const isMinorWord = MINOR_TITLE_WORDS.has(lower)
-      const isBoundarySegment = index === 0 || index === segments.length - 1
+  if (mode === 'upper') {
+    return flattened.map(word => word.toUpperCase()).join(joiner)
+  }
 
-      if (allowMinorWords && isMinorWord && !isBoundarySegment) {
-        return lower
+  return flattened.map(capitalizeWord).join(joiner)
+}
+
+function toSentenceCase(input: string) {
+  const lower = input.toLowerCase()
+  let shouldUppercase = true
+
+  return Array.from(lower)
+    .map(char => {
+      if (shouldUppercase && /[a-z]/.test(char)) {
+        shouldUppercase = false
+        return char.toUpperCase()
       }
 
-      return capitalizeWord(segment)
+      if (/[.!?]/.test(char)) {
+        shouldUppercase = true
+      }
+
+      return char
     })
-    .join('-')
+    .join('')
 }
 
-function replaceWords(
-  input: string,
-  preserveMap: Map<string, string>,
-  transform: (word: string, index: number, words: string[]) => string
-) {
-  const words = Array.from(input.matchAll(WORD_REGEX), match => match[0])
-  let wordIndex = 0
-
-  return input.replace(WORD_REGEX, word => {
-    const preserved = preserveMap.get(word.toLowerCase())
-    if (preserved) {
-      wordIndex += 1
-      return preserved
-    }
-
-    const nextWord = transform(word, wordIndex, words)
-    wordIndex += 1
-    return nextWord
-  })
+function toToggleCase(input: string) {
+  return Array.from(input)
+    .map(char => {
+      if (char >= 'a' && char <= 'z') {
+        return char.toUpperCase()
+      }
+      if (char >= 'A' && char <= 'Z') {
+        return char.toLowerCase()
+      }
+      return char
+    })
+    .join('')
 }
 
-function transformSentenceCase(input: string, preserveMap: Map<string, string>) {
-  let capitalizeNext = true
-  let lastIndex = 0
-  let output = ''
-
-  for (const match of input.matchAll(WORD_REGEX)) {
-    const word = match[0]
-    const start = match.index ?? 0
-    const end = start + word.length
-    const delimiter = input.slice(lastIndex, start)
-
-    output += delimiter
-
-    if (lastIndex !== 0 && (/[.!?]/.test(delimiter) || /\n\s*\n/.test(delimiter))) {
-      capitalizeNext = true
-    }
-
-    const preserved = preserveMap.get(word.toLowerCase())
-    if (preserved) {
-      output += preserved
-    } else {
-      output += capitalizeNext ? capitalizeWord(word) : word.toLowerCase()
-    }
-
-    capitalizeNext = false
-    lastIndex = end
+function toCamelCase(words: string[]) {
+  if (words.length === 0) {
+    return ''
   }
 
-  return output + input.slice(lastIndex)
+  const parts = words
+    .map(word => word.replace(/['\u2019-]/g, ' '))
+    .flatMap(word => word.split(/\s+/).filter(Boolean))
+
+  return parts
+    .map((word, index) => (index === 0 ? word.toLowerCase() : capitalizeWord(word)))
+    .join('')
 }
 
-function transformTitleCase(input: string, preserveMap: Map<string, string>) {
-  const matches = Array.from(input.matchAll(WORD_REGEX))
-  let lastIndex = 0
-  let output = ''
-
-  matches.forEach((match, index) => {
-    const word = match[0]
-    const start = match.index ?? 0
-    const end = start + word.length
-    const delimiter = input.slice(lastIndex, start)
-
-    output += delimiter
-
-    const preserved = preserveMap.get(word.toLowerCase())
-    if (preserved) {
-      output += preserved
-      lastIndex = end
-      return
-    }
-
-    const isFirstWord = index === 0
-    const isLastWord = index === matches.length - 1
-    const shouldForceCapitalize = /[:.!?]/.test(delimiter) || /\n\s*\n/.test(delimiter)
-    const lower = word.toLowerCase()
-
-    if (!isFirstWord && !isLastWord && !shouldForceCapitalize && MINOR_TITLE_WORDS.has(lower)) {
-      output += lower
-    } else {
-      output += capitalizeHyphenatedWord(word, { allowMinorWords: true })
-    }
-
-    lastIndex = end
-  })
-
-  return output + input.slice(lastIndex)
+function toPascalCase(words: string[]) {
+  return words
+    .map(word => word.replace(/['\u2019-]/g, ' '))
+    .flatMap(word => word.split(/\s+/).filter(Boolean))
+    .map(capitalizeWord)
+    .join('')
 }
 
 export function countEnglishWords(input: string) {
-  return Array.from(input.matchAll(WORD_REGEX)).length
+  return splitWords(input).length
 }
 
-export function buildCaseConversionResults(input: string, preservedTerms: string): CaseConversionResult[] {
-  const preserveMap = buildPreserveMap(preservedTerms)
+export function buildCaseConversionResults(input: string): CaseConversionResult[] {
+  const words = splitWords(input)
 
   return [
     {
-      id: 'lowercase',
-      name: '全部转小写',
-      description: '全部转成小写，适合规范化文本或做基础比对。',
-      output: replaceWords(input, preserveMap, word => word.toLowerCase()),
-    },
-    {
       id: 'uppercase',
-      name: '全部转大写',
-      description: '全部转成大写，常用于强调短句、代号或标签。',
-      output: replaceWords(input, preserveMap, word => word.toUpperCase()),
+      label: '\u5168\u90e8\u5927\u5199',
+      description: '\u628a\u6240\u6709\u82f1\u6587\u5b57\u6bcd\u8f6c\u6210\u5927\u5199\u3002',
+      output: input.toUpperCase(),
     },
     {
-      id: 'capitalize-words',
-      name: '每个单词首字母大写',
-      description: '每个单词首字母大写，适合人名、标题或列表项。',
-      output: replaceWords(input, preserveMap, word => capitalizeHyphenatedWord(word)),
-    },
-    {
-      id: 'sentence-case',
-      name: '句首字母大写',
-      description: '句首字母大写，其余单词默认转小写，更接近自然书写。',
-      output: transformSentenceCase(input, preserveMap),
+      id: 'lowercase',
+      label: '\u5168\u90e8\u5c0f\u5199',
+      description: '\u628a\u6240\u6709\u82f1\u6587\u5b57\u6bcd\u8f6c\u6210\u5c0f\u5199\u3002',
+      output: input.toLowerCase(),
     },
     {
       id: 'title-case',
-      name: '标题格式大写',
-      description: '标题格式，自动保留常见虚词小写，并支持自定义保留词。',
-      output: transformTitleCase(input, preserveMap),
+      label: '\u9996\u5b57\u6bcd\u5927\u5199',
+      description: '\u628a\u6bcf\u4e2a\u82f1\u6587\u5355\u8bcd\u7684\u9996\u5b57\u6bcd\u8f6c\u6210\u5927\u5199\u3002',
+      output: input.replace(ENGLISH_WORD_RE, word => capitalizeWord(word)),
+    },
+    {
+      id: 'sentence-case',
+      label: '\u53e5\u9996\u5927\u5199',
+      description: '\u6309\u53e5\u5b50\u89c4\u5219\u5904\u7406\u5927\u5c0f\u5199\u3002',
+      output: toSentenceCase(input),
+    },
+    {
+      id: 'toggle-case',
+      label: '\u5927\u5c0f\u5199\u53cd\u8f6c',
+      description: '\u5927\u5199\u53d8\u5c0f\u5199\uff0c\u5c0f\u5199\u53d8\u5927\u5199\u3002',
+      output: toToggleCase(input),
+    },
+    {
+      id: 'camel-case',
+      label: 'camelCase',
+      description: '\u53d8\u91cf\u540d\u5e38\u7528\u7684\u5c0f\u9a7c\u5cf0\u5199\u6cd5\u3002',
+      output: toCamelCase(words),
+    },
+    {
+      id: 'pascal-case',
+      label: 'PascalCase',
+      description: '\u7c7b\u540d\u548c\u7ec4\u4ef6\u540d\u5e38\u7528\u7684\u5927\u9a7c\u5cf0\u5199\u6cd5\u3002',
+      output: toPascalCase(words),
+    },
+    {
+      id: 'snake-case',
+      label: 'snake_case',
+      description: '\u5355\u8bcd\u5168\u90e8\u5c0f\u5199\uff0c\u4f7f\u7528\u4e0b\u5212\u7ebf\u8fde\u63a5\u3002',
+      output: buildCompound(words, '_', 'lower'),
+    },
+    {
+      id: 'kebab-case',
+      label: 'kebab-case',
+      description: '\u5355\u8bcd\u5168\u90e8\u5c0f\u5199\uff0c\u4f7f\u7528\u8fde\u5b57\u7b26\u8fde\u63a5\u3002',
+      output: buildCompound(words, '-', 'lower'),
+    },
+    {
+      id: 'constant-case',
+      label: 'CONSTANT_CASE',
+      description: '\u5e38\u91cf\u540d\u5e38\u7528\u7684\u5168\u90e8\u5927\u5199\u5199\u6cd5\u3002',
+      output: buildCompound(words, '_', 'upper'),
+    },
+    {
+      id: 'dot-case',
+      label: 'dot.case',
+      description: '\u9002\u5408\u5c42\u7ea7\u6807\u8bc6\u6216\u90e8\u5206\u547d\u540d\u89c4\u5219\u3002',
+      output: buildCompound(words, '.', 'lower'),
     },
   ]
 }
