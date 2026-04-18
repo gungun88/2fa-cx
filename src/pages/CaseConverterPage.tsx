@@ -1,25 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useClipboard } from '@/hooks/useClipboard'
-import { buildCaseConversionResults, countEnglishWords } from '@/utils/caseConverter'
+import { buildCaseConversionResults } from '@/utils/caseConverter'
+import { applyPageSeo } from '@/utils/seo'
 
 const SITE_URL = 'https://2fa.cx'
 const BASE_TITLE = '\u82f1\u6587\u5927\u5c0f\u5199\u8f6c\u6362 - 2FA.CX'
 const BASE_DESCRIPTION =
   '\u652f\u6301\u82f1\u6587\u5168\u5927\u5199\u3001\u5168\u5c0f\u5199\u3001\u9996\u5b57\u6bcd\u5927\u5199\u3001camelCase\u3001PascalCase\u3001snake_case\u3001kebab-case \u7b49\u591a\u79cd\u8f6c\u6362\u65b9\u5f0f\u3002'
-
-function updateMeta(selector: string, content: string) {
-  const element = document.head.querySelector<HTMLMetaElement>(selector)
-  if (element) {
-    element.content = content
-  }
-}
-
-function updateCanonical(href: string) {
-  const element = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
-  if (element) {
-    element.href = href
-  }
-}
 
 interface CaseConverterPageProps {
   isWebsite: boolean
@@ -31,21 +18,17 @@ export function CaseConverterPage({ isWebsite, isActive }: CaseConverterPageProp
   const [copiedKey, setCopiedKey] = useState('')
   const clipboard = useClipboard()
   const results = useMemo(() => buildCaseConversionResults(input), [input])
-  const wordCount = useMemo(() => countEnglishWords(input), [input])
 
   useEffect(() => {
     if (!isWebsite || !isActive) {
       return
     }
 
-    document.title = BASE_TITLE
-    updateMeta('meta[name="description"]', BASE_DESCRIPTION)
-    updateMeta('meta[property="og:title"]', BASE_TITLE)
-    updateMeta('meta[property="og:description"]', BASE_DESCRIPTION)
-    updateMeta('meta[property="og:url"]', `${SITE_URL}/yingwen-daxiaoxie`)
-    updateMeta('meta[name="twitter:title"]', BASE_TITLE)
-    updateMeta('meta[name="twitter:description"]', BASE_DESCRIPTION)
-    updateCanonical(`${SITE_URL}/yingwen-daxiaoxie`)
+    applyPageSeo({
+      title: BASE_TITLE,
+      description: BASE_DESCRIPTION,
+      url: `${SITE_URL}/yingwen-daxiaoxie`,
+    })
   }, [isActive, isWebsite])
 
   const handleCopy = async (key: string, value: string) => {
@@ -69,7 +52,7 @@ export function CaseConverterPage({ isWebsite, isActive }: CaseConverterPageProp
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
-                {'Case Converter'}
+                {'\u82f1\u6587\u5927\u5c0f\u5199\u8f6c\u6362'}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
                 {`\u5df2\u751f\u6210 ${results.length} \u79cd\u8f6c\u6362`}
@@ -83,11 +66,6 @@ export function CaseConverterPage({ isWebsite, isActive }: CaseConverterPageProp
                 '\u9002\u5408\u5904\u7406\u82f1\u6587\u6807\u9898\u3001\u7a0b\u5e8f\u53d8\u91cf\u540d\u3001\u914d\u7f6e\u9879\u547d\u540d\u6216 SEO \u6807\u9898\u3002\u8f93\u5165\u4efb\u610f\u82f1\u6587\u53e5\u5b50\u540e\uff0c\u4f1a\u7acb\u5373\u751f\u6210\u591a\u79cd\u5e38\u7528\u5199\u6cd5\u3002'
               }
             </p>
-          </div>
-
-          <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-500">
-            <div>{`\u82f1\u6587\u5355\u8bcd\u6570\uff1a${wordCount}`}</div>
-            <div>{`\u603b\u5b57\u7b26\u6570\uff1a${input.length}`}</div>
           </div>
         </div>
 
@@ -170,12 +148,12 @@ export function CaseConverterPage({ isWebsite, isActive }: CaseConverterPageProp
           <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700">
             <p>
               {
-                '`camelCase` \u548c `PascalCase` \u4f1a\u53ea\u4fdd\u7559\u82f1\u6587\u5355\u8bcd\u5e76\u505a\u5408\u5e76\uff0c\u8fde\u5b57\u7b26\u6216\u5f15\u53f7\u4f1a\u88ab\u89c6\u4e3a\u5206\u8bcd\u8fb9\u754c\u3002'
+                '\u5c0f\u9a7c\u5cf0\u548c\u5927\u9a7c\u5cf0\u5199\u6cd5\u4f1a\u53ea\u4fdd\u7559\u82f1\u6587\u5355\u8bcd\u5e76\u505a\u5408\u5e76\uff0c\u8fde\u5b57\u7b26\u6216\u5f15\u53f7\u4f1a\u88ab\u89c6\u4e3a\u5206\u8bcd\u8fb9\u754c\u3002'
               }
             </p>
             <p>
               {
-                '`snake_case`\u3001`kebab-case`\u3001`CONSTANT_CASE` \u4f1a\u8f93\u51fa\u66f4\u9002\u5408\u7a0b\u5e8f\u547d\u540d\u7684\u7ed3\u679c\uff0c\u5bf9\u4e2d\u6587\u548c\u5f02\u5e38\u7b26\u53f7\u4e0d\u505a\u5f3a\u5236\u8f6c\u6362\u3002'
+                '\u4e0b\u5212\u7ebf\u547d\u540d\u3001\u8fde\u5b57\u7b26\u547d\u540d\u3001\u5e38\u91cf\u5199\u6cd5\u4f1a\u8f93\u51fa\u66f4\u9002\u5408\u7a0b\u5e8f\u547d\u540d\u7684\u7ed3\u679c\uff0c\u5bf9\u4e2d\u6587\u548c\u5f02\u5e38\u7b26\u53f7\u4e0d\u505a\u5f3a\u5236\u8f6c\u6362\u3002'
               }
             </p>
           </div>

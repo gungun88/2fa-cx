@@ -5,3 +5,10 @@ dist
 .vite-dev.out.log
 .vite-dev.err.log
 server/*.log
+
+# Local screenshots / debug artifacts at repo root only
+/*.png
+
+# Tooling caches
+.playwright-mcp/
+.claude/

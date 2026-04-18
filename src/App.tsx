@@ -3,13 +3,15 @@ import { DesktopPet } from '@/components/DesktopPet'
 import { CaseConverterPage } from '@/pages/CaseConverterPage'
 import { EmojiPage } from '@/pages/EmojiPage'
 import { FacebookIdQueryPage } from '@/pages/FacebookIdQueryPage'
+import { FacebookScanPage } from '@/pages/FacebookScanPage'
 import { FontChangerPage } from '@/pages/FontChangerPage'
 import { TwoFactorPage } from '@/pages/TwoFactorPage'
 
-type WebsiteView = 'totp' | 'facebook' | 'font-changer' | 'case-converter' | 'emoji'
+type WebsiteView = 'totp' | 'facebook' | 'facebook-scan' | 'font-changer' | 'case-converter' | 'emoji'
 
 const FACEBOOK_ID_QUERY_PATH = '/facebook-id-query'
 const LEGACY_FACEBOOK_PATH = '/facebook-permission-checker'
+const FACEBOOK_SCAN_PATH = '/facebook-scan'
 const FONT_CHANGER_PATH = '/font-changer'
 const CASE_CONVERTER_PATH = '/yingwen-daxiaoxie'
 const LEGACY_CASE_CONVERTER_PATH = '/daxiaoxie'
@@ -25,6 +27,7 @@ const toolItems: Array<{
 }> = [
   { id: 'totp', label: '2FA 工具' },
   { id: 'facebook', label: 'Facebook ID 查询' },
+  { id: 'facebook-scan', label: 'FB 账号批量检测' },
   { id: 'font-changer', label: '花体英文转换器' },
   { id: 'case-converter', label: '英文大小写转换' },
   { id: 'emoji', label: 'Emoji 表情大全' },
@@ -53,6 +56,10 @@ function getViewFromPath(pathname: string): WebsiteView {
     return 'font-changer'
   }
 
+  if (pathname.startsWith(FACEBOOK_SCAN_PATH)) {
+    return 'facebook-scan'
+  }
+
   if (pathname.startsWith(FACEBOOK_ID_QUERY_PATH) || pathname.startsWith(LEGACY_FACEBOOK_PATH)) {
     return 'facebook'
   }
@@ -66,6 +73,8 @@ function getPathFromView(view: WebsiteView) {
       return EMOJI_PATH
     case 'facebook':
       return FACEBOOK_ID_QUERY_PATH
+    case 'facebook-scan':
+      return FACEBOOK_SCAN_PATH
     case 'font-changer':
       return FONT_CHANGER_PATH
     case 'case-converter':
@@ -236,6 +245,9 @@ function WebsiteApp() {
           {activeView === 'totp' ? <TwoFactorPage isWebsite isActive={activeView === 'totp'} /> : null}
           {activeView === 'facebook' ? (
             <FacebookIdQueryPage isWebsite isActive={activeView === 'facebook'} />
+          ) : null}
+          {activeView === 'facebook-scan' ? (
+            <FacebookScanPage isWebsite isActive={activeView === 'facebook-scan'} />
           ) : null}
           {activeView === 'font-changer' ? (
             <FontChangerPage isWebsite isActive={activeView === 'font-changer'} />

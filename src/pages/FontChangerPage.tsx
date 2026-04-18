@@ -1,25 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useClipboard } from '@/hooks/useClipboard'
 import { buildFontVariantResults } from '@/utils/fontVariants'
+import { applyPageSeo } from '@/utils/seo'
 
 const SITE_URL = 'https://2fa.cx'
 const BASE_TITLE = '\u82b1\u4f53\u82f1\u6587\u8f6c\u6362\u5668 - 2FA.CX'
 const BASE_DESCRIPTION =
   '\u628a\u82f1\u6587\u3001\u6570\u5b57\u548c\u7b80\u5355\u7b26\u53f7\u8f6c\u6210\u7c97\u4f53\u3001\u659c\u4f53\u3001\u5168\u89d2\u3001\u5706\u5708\u5b57\u3001\u4e0b\u5212\u7ebf\u7b49\u591a\u79cd Unicode \u98ce\u683c\uff0c\u9002\u5408\u6635\u79f0\u3001\u7b7e\u540d\u548c\u793e\u4ea4\u5e73\u53f0\u5185\u5bb9\u3002'
-
-function updateMeta(selector: string, content: string) {
-  const element = document.head.querySelector<HTMLMetaElement>(selector)
-  if (element) {
-    element.content = content
-  }
-}
-
-function updateCanonical(href: string) {
-  const element = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
-  if (element) {
-    element.href = href
-  }
-}
 
 interface FontChangerPageProps {
   isWebsite: boolean
@@ -37,14 +24,11 @@ export function FontChangerPage({ isWebsite, isActive }: FontChangerPageProps) {
       return
     }
 
-    document.title = BASE_TITLE
-    updateMeta('meta[name="description"]', BASE_DESCRIPTION)
-    updateMeta('meta[property="og:title"]', BASE_TITLE)
-    updateMeta('meta[property="og:description"]', BASE_DESCRIPTION)
-    updateMeta('meta[property="og:url"]', `${SITE_URL}/font-changer`)
-    updateMeta('meta[name="twitter:title"]', BASE_TITLE)
-    updateMeta('meta[name="twitter:description"]', BASE_DESCRIPTION)
-    updateCanonical(`${SITE_URL}/font-changer`)
+    applyPageSeo({
+      title: BASE_TITLE,
+      description: BASE_DESCRIPTION,
+      url: `${SITE_URL}/font-changer`,
+    })
   }, [isActive, isWebsite])
 
   const handleCopy = async (key: string, value: string) => {
@@ -84,10 +68,6 @@ export function FontChangerPage({ isWebsite, isActive }: FontChangerPageProps) {
             </p>
           </div>
 
-          <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-6 text-slate-500">
-            <div>{`\u5b57\u7b26\u6570\uff1a${input.length}`}</div>
-            <div>{`\u975e\u7a7a\u5b57\u7b26\uff1a${input.replace(/\s/g, '').length}`}</div>
-          </div>
         </div>
 
         <div className="mt-5 space-y-3">
@@ -154,7 +134,13 @@ export function FontChangerPage({ isWebsite, isActive }: FontChangerPageProps) {
 
               <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-4">
                 <div className="text-xs text-slate-500">{'\u8f93\u51fa\u9884\u89c8'}</div>
-                <div className="mt-2 break-all text-lg font-semibold leading-8 text-slate-900">
+                <div
+                  className="mt-2 break-all text-lg font-semibold leading-8 text-slate-900"
+                  style={{
+                    fontFamily:
+                      "'Segoe UI Symbol', 'Noto Sans Math', 'Noto Sans Symbols 2', 'Cambria Math', 'STIX Two Math', 'DM Sans', system-ui, sans-serif",
+                  }}
+                >
                   {result.output || '\u6682\u65e0\u8f93\u51fa'}
                 </div>
               </div>

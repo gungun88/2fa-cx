@@ -86,10 +86,6 @@ function toPascalCase(words: string[]) {
     .join('')
 }
 
-export function countEnglishWords(input: string) {
-  return splitWords(input).length
-}
-
 export function buildCaseConversionResults(input: string): CaseConversionResult[] {
   const words = splitWords(input)
 
@@ -126,38 +122,38 @@ export function buildCaseConversionResults(input: string): CaseConversionResult[
     },
     {
       id: 'camel-case',
-      label: 'camelCase',
-      description: '\u53d8\u91cf\u540d\u5e38\u7528\u7684\u5c0f\u9a7c\u5cf0\u5199\u6cd5\u3002',
+      label: '\u5c0f\u9a7c\u5cf0\u5199\u6cd5',
+      description: '\u53d8\u91cf\u540d\u5e38\u7528\u7684\u5c0f\u9a7c\u5cf0\u5199\u6cd5\uff0c\u793a\u4f8b\uff1acamelCase\u3002',
       output: toCamelCase(words),
     },
     {
       id: 'pascal-case',
-      label: 'PascalCase',
-      description: '\u7c7b\u540d\u548c\u7ec4\u4ef6\u540d\u5e38\u7528\u7684\u5927\u9a7c\u5cf0\u5199\u6cd5\u3002',
+      label: '\u5927\u9a7c\u5cf0\u5199\u6cd5',
+      description: '\u7c7b\u540d\u548c\u7ec4\u4ef6\u540d\u5e38\u7528\u7684\u5927\u9a7c\u5cf0\u5199\u6cd5\uff0c\u793a\u4f8b\uff1aPascalCase\u3002',
       output: toPascalCase(words),
     },
     {
       id: 'snake-case',
-      label: 'snake_case',
-      description: '\u5355\u8bcd\u5168\u90e8\u5c0f\u5199\uff0c\u4f7f\u7528\u4e0b\u5212\u7ebf\u8fde\u63a5\u3002',
+      label: '\u4e0b\u5212\u7ebf\u547d\u540d',
+      description: '\u5355\u8bcd\u5168\u90e8\u5c0f\u5199\uff0c\u4f7f\u7528\u4e0b\u5212\u7ebf\u8fde\u63a5\uff0c\u793a\u4f8b\uff1asnake_case\u3002',
       output: buildCompound(words, '_', 'lower'),
     },
     {
       id: 'kebab-case',
-      label: 'kebab-case',
-      description: '\u5355\u8bcd\u5168\u90e8\u5c0f\u5199\uff0c\u4f7f\u7528\u8fde\u5b57\u7b26\u8fde\u63a5\u3002',
+      label: '\u8fde\u5b57\u7b26\u547d\u540d',
+      description: '\u5355\u8bcd\u5168\u90e8\u5c0f\u5199\uff0c\u4f7f\u7528\u8fde\u5b57\u7b26\u8fde\u63a5\uff0c\u793a\u4f8b\uff1akebab-case\u3002',
       output: buildCompound(words, '-', 'lower'),
     },
     {
       id: 'constant-case',
-      label: 'CONSTANT_CASE',
-      description: '\u5e38\u91cf\u540d\u5e38\u7528\u7684\u5168\u90e8\u5927\u5199\u5199\u6cd5\u3002',
+      label: '\u5e38\u91cf\u5199\u6cd5',
+      description: '\u5e38\u91cf\u540d\u5e38\u7528\u7684\u5168\u90e8\u5927\u5199\u5199\u6cd5\uff0c\u793a\u4f8b\uff1aCONSTANT_CASE\u3002',
       output: buildCompound(words, '_', 'upper'),
     },
     {
       id: 'dot-case',
-      label: 'dot.case',
-      description: '\u9002\u5408\u5c42\u7ea7\u6807\u8bc6\u6216\u90e8\u5206\u547d\u540d\u89c4\u5219\u3002',
+      label: '\u70b9\u53f7\u547d\u540d',
+      description: '\u9002\u5408\u5c42\u7ea7\u6807\u8bc6\u6216\u90e8\u5206\u547d\u540d\u89c4\u5219\uff0c\u793a\u4f8b\uff1adot.case\u3002',
       output: buildCompound(words, '.', 'lower'),
     },
   ]

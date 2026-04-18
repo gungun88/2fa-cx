@@ -1,31 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useClipboard } from '@/hooks/useClipboard'
 import { emojiCatalog } from '@/data/emojiCatalog'
+import { applyPageSeo } from '@/utils/seo'
 
 const SITE_URL = 'https://2fa.cx'
 const BASE_TITLE = 'Emoji 表情大全 - 2FA.CX'
 const BASE_DESCRIPTION =
   'Emoji 表情大全页面，支持按分类浏览笑脸、爱心、手势、动物、美食、符号等常用 Emoji，并可一键复制单个表情或整组内容。'
-
-function updateMeta(selector: string, content: string) {
-  const element = document.head.querySelector<HTMLMetaElement>(selector)
-  if (element) {
-    element.content = content
-  }
-}
-
-function updateCanonical(href: string) {
-  const element = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
-  if (element) {
-    element.href = href
-  }
-}
-
-function toUnicodeCodePoints(value: string) {
-  return Array.from(value)
-    .map(char => `U+${char.codePointAt(0)?.toString(16).toUpperCase()}`)
-    .join(' ')
-}
 
 interface EmojiPageProps {
   isWebsite: boolean
@@ -43,14 +24,11 @@ export function EmojiPage({ isWebsite, isActive }: EmojiPageProps) {
       return
     }
 
-    document.title = BASE_TITLE
-    updateMeta('meta[name="description"]', BASE_DESCRIPTION)
-    updateMeta('meta[property="og:title"]', BASE_TITLE)
-    updateMeta('meta[property="og:description"]', BASE_DESCRIPTION)
-    updateMeta('meta[property="og:url"]', `${SITE_URL}/emoji`)
-    updateMeta('meta[name="twitter:title"]', BASE_TITLE)
-    updateMeta('meta[name="twitter:description"]', BASE_DESCRIPTION)
-    updateCanonical(`${SITE_URL}/emoji`)
+    applyPageSeo({
+      title: BASE_TITLE,
+      description: BASE_DESCRIPTION,
+      url: `${SITE_URL}/emoji`,
+    })
   }, [isActive, isWebsite])
 
   const normalizedQuery = query.trim().toLowerCase()
@@ -212,7 +190,7 @@ export function EmojiPage({ isWebsite, isActive }: EmojiPageProps) {
                       key={key}
                       type="button"
                       onClick={() => handleCopy(key, item.emoji)}
-                      className="group rounded-[20px] border border-slate-200 bg-slate-50 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                      className="group rounded-[20px] border border-slate-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <span className="text-3xl leading-none sm:text-4xl">{item.emoji}</span>
@@ -221,7 +199,7 @@ export function EmojiPage({ isWebsite, isActive }: EmojiPageProps) {
                             'rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors',
                             copied
                               ? 'bg-green-50 text-green-700'
-                              : 'bg-white text-slate-500 group-hover:bg-slate-100',
+                              : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200',
                           ].join(' ')}
                         >
                           {copied ? '已复制' : '复制'}
@@ -230,13 +208,6 @@ export function EmojiPage({ isWebsite, isActive }: EmojiPageProps) {
 
                       <div className="mt-4">
                         <h3 className="text-sm font-semibold text-slate-900">{item.label}</h3>
-                        <p className="mt-1 min-h-[44px] text-xs leading-5 text-slate-500">
-                          {item.keywords.join(' · ')}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-500">
-                        {toUnicodeCodePoints(item.emoji)}
                       </div>
                     </button>
                   )

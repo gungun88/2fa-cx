@@ -8,6 +8,7 @@ import { useClipboard } from '@/hooks/useClipboard'
 import { useTOTP } from '@/hooks/useTOTP'
 import { HistoryEntry } from '@/types/totp'
 import { isValidBase32 } from '@/utils/base32'
+import { updateCanonical, updateMeta } from '@/utils/seo'
 
 const SITE_URL = 'https://2fa.cx'
 const DEMO_KEY = 'TWOLF3KHBHLTFIX4HS26TR2FKEGOWT73'
@@ -43,20 +44,6 @@ function maskSecret(secret: string) {
   }
 
   return `${secret.slice(0, 6)}...${secret.slice(-4)}`
-}
-
-function updateMeta(selector: string, content: string) {
-  const element = document.head.querySelector<HTMLMetaElement>(selector)
-  if (element) {
-    element.content = content
-  }
-}
-
-function updateCanonical(href: string) {
-  const element = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')
-  if (element) {
-    element.href = href
-  }
 }
 
 interface TwoFactorPageProps {
